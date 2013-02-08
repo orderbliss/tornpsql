@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2012 Facebook
+# Copyright 2013 Steve Peak
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -19,12 +19,12 @@ import distutils.core
 version = "0.1"
 
 distutils.core.setup(
-    name="torndb",
+    name="torndb-postgresql",
     version=version,
-    py_modules=["torndb"],
-    author="Facebook",
+    py_modules=["torndb-postgresql"],
+    author="Steve Peak",
     author_email="python-tornado@googlegroups.com",
-    url="https://github.com/bdarnell/torndb",
+    url="https://github.com/stevepeak/torndb-postgresql",
     license="http://www.apache.org/licenses/LICENSE-2.0",
-    description="A lightweight wrapper around MySQLdb.  Originally part of the Tornado framework.",
+    description="A lightweight wrapper around PostgreSQL.",
     )

@@ -1,16 +1,16 @@
-Torndb
+Torndb-postgresql
 ======
 
-Torndb is a simple wrapper around MySQLdb that originally appeared
-in Tornado (http://www.tornadoweb.org).  It is being moved into
-a separate package for Tornado 3.0.
+Torndb is a simple wrapper around PostgreSQL.
+Forked from bdarnell/torndb which had originally appeared
+in Tornado (http://www.tornadoweb.org).
 
 Installation
 ------------
 
-``pip install torndb``
+tba...
 
 Documentation
 -------------
 
-http://torndb.readthedocs.org
+tba...
