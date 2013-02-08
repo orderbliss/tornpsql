@@ -18,24 +18,12 @@
 Forked from http://github.com/bdarnell/torndb
 """
 
-from __future__ import absolute_import, division, with_statement
-
-import copy
 import itertools
 import logging
 import os
-import time
 
-try:
-    import psycopg2
-except ImportError:
-    # If psycopg2 isn't available this module won't actually be useable,
-    # but we want it to at least be importable on readthedocs.org,
-    # which has limitations on third-party modules.
-    if 'READTHEDOCS' in os.environ:
-        psycopg2 = None
-    else:
-        raise
+import psycopg2
+
 
 version = "0.1"
 version_info = (0, 1, 0, 0)
@@ -43,19 +31,15 @@ version_info = (0, 1, 0, 0)
 class Connection(object):
 	"""A lightweight wrapper around PostgreSQL DB-API connections.
 	"""
-	def __init__(self, host, database, user=None, password=None, port=5432,
-			max_idle_time=7 * 3600, time_zone="+0:00"):
+	def __init__(self, host, database, user=None, password=None, port=5432):
 		self.host = host
 		self.database = database
-		self.max_idle_time = max_idle_time
-
-		args = dict(dbname=database, port=port, 
+		
+		args = dict(host=host, database=database, port=port, 
 			user=user, password=password)
 
-		# We accept a path to a MySQL socket file or a host(:port) string
 		self._db = None
 		self._db_args = args
-		self._last_use_time = time.time()
 		try:
 			self.reconnect()
 		except Exception:
@@ -109,11 +93,9 @@ class Connection(object):
 		else:
 			return rows[0]
 
-	# rowcount is a more reasonable default return value than lastrowid,
-	# but for historical compatibility execute() must return lastrowid.
 	def execute(self, query, *parameters):
-		"""Executes the given query, returning the lastrowid from the query."""
-		return self.execute_lastrowid(query, *parameters)
+		"""Executes the given query, returns nothing..."""
+		self._execute(query, *parameters)
 
 	def executemany(self, query, parameters):
 		"""Executes the given query against all the given param sequences.
@@ -136,25 +118,18 @@ class Connection(object):
 			cursor.close()
 
 	def _ensure_connected(self):
-		# Mysql by default closes client connections that are idle for
-		# 8 hours, but the client library does not report this fact until
-		# you try to perform a query and it fails.  Protect against this
-		# case by preemptively closing and reopening the connection
-		# if it has been idle for too long (7 hours by default).
-		if (self._db is None or
-			(time.time() - self._last_use_time > self.max_idle_time)):
+		if self._db is None:
 			self.reconnect()
-		self._last_use_time = time.time()
 
-		def _cursor(self):
-			self._ensure_connected()
-			return self._db.cursor()
+	def _cursor(self):
+		self._ensure_connected()
+		return self._db.cursor()
 
 	def _execute(self, cursor, query, parameters):
 		try:
-			return cursor.execute(query, parameters)
+			cursor.execute(query, parameters)
 		except OperationalError:
-			logging.error("Error connecting to MySQL on %s", self.host)
+			logging.error("Error connecting to PostgreSQL on %s", self.host)
 			self.close()
 			raise
 	
@@ -162,7 +137,7 @@ class Connection(object):
 		try:
 			cursor.executemany(query, parameters)
 		except OperationalError:
-			logging.error("Error connecting to MySQL on %s", self.host)
+			logging.error("Error connecting to PostgreSQL on %s", self.host)
 			self.close()
 			raise 
 	
