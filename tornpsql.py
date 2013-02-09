@@ -128,16 +128,16 @@ class Connection(object):
 	def _execute(self, cursor, query, parameters):
 		try:
 			cursor.execute(query, parameters)
-		except OperationalError:
-			logging.error("Error connecting to PostgreSQL on %s", self.host)
+		except psycopg2.OperationalError as e:
+			logging.error("Error connecting to PostgreSQL on %s, %s", self.host, e)
 			self.close()
 			raise
 	
 	def _executemany(self, cursor, query, parameters):
 		try:
 			cursor.executemany(query, parameters)
-		except OperationalError:
-			logging.error("Error connecting to PostgreSQL on %s", self.host)
+		except psycopg2.OperationalError as e:
+			logging.error("Error connecting to PostgreSQL on %s, e", self.host, e)
 			self.close()
 			raise 
 	
