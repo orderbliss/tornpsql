@@ -73,7 +73,7 @@ class Connection(object):
 		finally:
 			cursor.close()
 
-	def query(self, query, *parameters):
+	def query(self, query, *parameters, **kwargs):
 		"""Returns a row list for the given query and parameters."""
 		cursor = self._cursor()
 		try:
@@ -93,16 +93,16 @@ class Connection(object):
 		else:
 			return rows[0]
 
-	def execute(self, query, *parameters):
+	def execute(self, query, *parameters, **kwargs):
 		"""Executes the given query, returns nothing..."""
-		self._execute(query, *parameters)
+		self._execute(query, *parameters, **kwargs)
 
-	def executemany(self, query, parameters):
+	def executemany(self, query, parameters, **kwargs):
 		"""Executes the given query against all the given param sequences.
 		"""
 		cursor = self._cursor()
 		try:
-			self._executemany(query, parameters)
+			self._executemany(query, parameters, **kwargs)
 			return True
 		finally:
 			cursor.close()
