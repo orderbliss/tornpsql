@@ -61,31 +61,23 @@ class Connection(object):
 		self._db = psycopg2.connect(**self._db_args)
 		self._db.autocommit = True
 
-	def iter(self, query, *parameters):
-		"""Returns an iterator for the given query and parameters."""
-		self._ensure_connected()
-		cursor = self._db.cursor()
-		try:
-			self._execute(cursor, query, parameters)
-			column_names = [column.name for column in cursor.description]
-			for row in cursor.fetchall():
-				yield Row(zip(column_names, row))
-		finally:
-			cursor.close()
-
-	def query(self, query, *parameters, **kwargs):
+	def query(self, query, parameters=None, **kwargs):
 		"""Returns a row list for the given query and parameters."""
 		cursor = self._cursor()
 		try:
-			self._execute(cursor, query, parameters)
-			column_names = [column.name for column in cursor.description]
-			return [Row(itertools.izip(column_names, row)) for row in cursor.fetchall()]
+			self._execute(cursor, query, parameters)	
+			if cursor.description:
+				column_names = [column.name for column in cursor.description]
+				return [Row(itertools.izip(column_names, row)) for row in cursor.fetchall()]
 		finally:
 			cursor.close()
+	
+	def execute(self, query, parameters=None, **kwargs):
+		return self.query(query, parameters, **kwargs)
 
-	def get(self, query, *parameters):
+	def get(self, query, parameters):
 		"""Returns the first row returned for the given query."""
-		rows = self.query(query, *parameters)
+		rows = self.query(query, parameters)
 		if not rows:
 			return None
 		elif len(rows) > 1:
@@ -93,9 +85,6 @@ class Connection(object):
 		else:
 			return rows[0]
 
-	def execute(self, query, *parameters, **kwargs):
-		"""Executes the given query, returns nothing..."""
-		self._execute(query, *parameters, **kwargs)
 
 	def executemany(self, query, parameters, **kwargs):
 		"""Executes the given query against all the given param sequences.
@@ -108,7 +97,7 @@ class Connection(object):
 			cursor.close()
 			return False
 	
-	def execute_rowcount(self, query, *parameters):
+	def execute_rowcount(self, query, parameters):
 		"""Executes the given query, returning the rowcount from the query."""
 		cursor = self._cursor()
 		try:
@@ -127,7 +116,7 @@ class Connection(object):
 
 	def _execute(self, cursor, query, parameters):
 		try:
-			cursor.execute(query, parameters)
+			cursor.execute(query, parameters if type(parameters) is tuple else (parameters, ))
 		except psycopg2.OperationalError as e:
 			logging.error("Error connecting to PostgreSQL on %s, %s", self.host, e)
 			self.close()
@@ -135,7 +124,7 @@ class Connection(object):
 	
 	def _executemany(self, cursor, query, parameters):
 		try:
-			cursor.executemany(query, parameters)
+			cursor.executemany(query, parameters if type(parameters) is list else [parameters])
 		except psycopg2.OperationalError as e:
 			logging.error("Error connecting to PostgreSQL on %s, e", self.host, e)
 			self.close()
