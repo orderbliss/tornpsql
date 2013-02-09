@@ -1,1 +1,1 @@
-from torndbsql import *
+from tornpsql import *
