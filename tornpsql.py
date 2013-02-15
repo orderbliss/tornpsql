@@ -34,7 +34,7 @@ class Connection(object):
 	def __init__(self, host, database, user=None, password=None, port=5432):
 		self.host = host
 		self.database = database
-		
+		self.logging = False
 		args = dict(host=host, database=database, port=port, 
 			user=user, password=password)
 
@@ -45,7 +45,7 @@ class Connection(object):
 		except Exception:
 			logging.error("Cannot connect to PostgreSQL on postgresql://%s:<password>@%s/%s", 
 				args['user'], self.host, self.database, exc_info=True)
-
+	
 	def __del__(self):
 		self.close()
 
@@ -116,6 +116,8 @@ class Connection(object):
 
 	def _execute(self, cursor, query, parameters):
 		try:
+			if self.logging:
+				logging.info(cursor.mogrify(query, parameters if type(parameters) is tuple else (parameters, )))
 			cursor.execute(query, parameters if type(parameters) is tuple else (parameters, ))
 		except psycopg2.OperationalError as e:
 			logging.error("Error connecting to PostgreSQL on %s, %s", self.host, e)
@@ -124,6 +126,8 @@ class Connection(object):
 	
 	def _executemany(self, cursor, query, parameters):
 		try:
+			if self.logging:
+				logging.info(cursor.mogrify(query, parameters if type(parameters) is list else [parameters]))
 			cursor.executemany(query, parameters if type(parameters) is list else [parameters])
 		except psycopg2.OperationalError as e:
 			logging.error("Error connecting to PostgreSQL on %s, e", self.host, e)
