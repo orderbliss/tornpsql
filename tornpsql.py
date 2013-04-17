@@ -20,7 +20,7 @@ Forked from http://github.com/bdarnell/torndb
 
 import itertools
 import logging
-import os
+import os, time
 
 import psycopg2
 
@@ -116,9 +116,11 @@ class Connection(object):
 
 	def _execute(self, cursor, query, parameters):
 		try:
-			if self.logging:
-				logging.info(cursor.mogrify(query, parameters if type(parameters) is tuple else (parameters, )))
+			t = time.time() if self.logging else None
 			cursor.execute(query, parameters if type(parameters) is tuple else (parameters, ))
+			if self.logging:
+				logging.info(cursor.mogrify(query, parameters if type(parameters) is tuple else (parameters, )) + (" %.2fms" % ((time.time()-t)*1000.0)))
+			
 		except psycopg2.OperationalError as e:
 			logging.error("Error connecting to PostgreSQL on %s, %s", self.host, e)
 			self.close()
@@ -126,9 +128,11 @@ class Connection(object):
 	
 	def _executemany(self, cursor, query, parameters):
 		try:
-			if self.logging:
-				logging.info(cursor.mogrify(query, parameters if type(parameters) is list else [parameters]))
+			t = time.time() if self.logging else None
 			cursor.executemany(query, parameters if type(parameters) is list else [parameters])
+			if self.logging:
+				logging.info(cursor.mogrify(query, parameters if type(parameters) is list else [parameters]) + (" %.2fms" % ((time.time()-t)*1000.0)))
+			
 		except psycopg2.OperationalError as e:
 			logging.error("Error connecting to PostgreSQL on %s, e", self.host, e)
 			self.close()
