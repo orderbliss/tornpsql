@@ -1,16 +1,39 @@
-Torndb-postgresql
+tornpsql
 ======
 
-Torndb is a simple wrapper around PostgreSQL.
-Forked from bdarnell/torndb which had originally appeared
-in Tornado (http://www.tornadoweb.org).
+[![Build Status](https://secure.travis-ci.org/stevepeak/tornpsql.png)](http://travis-ci.org/stevepeak/tornpsql)
 
-Installation
-------------
+`pip install tornpsql`
 
-tba...
+`tornpsql` is a simple wrapper around PostgreSQL. Forked from [bdarnell/torndb](https://github.com/bdarnell/torndb) which had originally appeared.
 
-Documentation
--------------
+### Connection Methods
 
-tba...
+```python
+# Method 1
+import tornpsql
+con = tornpsql.Connection("postgres://postgres-user:postgres-password@127.0.0.1:5432/postgres-db")
+results = con.query("select column from mytable")
+# Method 2
+import tornpsql
+con = tornpsql.Connection("127.0.0.1", "database", "postgres", "postgres-user", 5432)
+results = con.query("select column from mytable")
+```
+
+### Query Methods
+
+```python
+# Get one or more results
+results = con.query("select column from mytable;")
+# results like [{"col": "data"}]
+# Get one result
+result = con.get("select column from mytable limit 1;")
+# results like {"col": "data"}
+```
+
+### Close
+
+```python
+con.close()
+del con
+```
