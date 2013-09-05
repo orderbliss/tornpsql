@@ -14,7 +14,7 @@ class tornpsqlTests(unittest.TestCase):
         self.assertEquals(db._db.closed, 0)
         db.execute("DROP TABLE IF EXISTS tornpsql_test;")
         createtable = db.execute("CREATE TABLE tornpsql_test (id int, name varchar);")
-        self.assertIsNone(createtable)
+        self.assertEquals(createtable, None)
 
         # single insert
         insert1 = db.execute("INSERT INTO tornpsql_test values (%s, %s) returning id;", 1, 'Steve')
@@ -43,11 +43,11 @@ class tornpsqlTests(unittest.TestCase):
 
         # drop the database
         droptable = db.execute("DROP TABLE tornpsql_test;")
-        self.assertIsNone(droptable)
+        self.assertEquals(droptable, None)
 
         # close
         db.close()
-        self.assertIsNone(db._db)
+        self.assertEquals(db._db, None)
 
     def testTwo(self):
         user = os.getenv("TORNPSQL_USERNAME")
