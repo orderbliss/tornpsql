@@ -36,11 +36,6 @@ class tornpsqlTests(unittest.TestCase):
         select2 = db.query("select distinct name from tornpsql_test;")
         self.assertListEqual(select2, [{'name': 'Shawn'}, {'name': 'Eric'}, {'name': 'Joe'}, {'name': 'Steve'}])
 
-        # mogrify
-        mog = db.mogrify("UPDATE some_table set column1=%s, column2=%s where col3=%s and col4=%s;",
-                         'data1', 'data2', 'data3', 'data4')
-        self.assertEquals(mog, "UPDATE some_table set column1='data1', column2='data2' where col3='data3' and col4='data4';")
-
         # drop the database
         droptable = db.execute("DROP TABLE tornpsql_test;")
         self.assertEquals(droptable, None)

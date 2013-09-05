@@ -1,8 +1,6 @@
 language: python
 python:
-  - "2.6"
   - "2.7"
-  - "pypy"
 env:
   global:
     - secure: "C2j48xbad+wBz8abKG/BoF8icFK2U+byZ9+Fx667yecdRtzzt7oBSCyhfN7k\nha2Ab1FM6I88RaNg4BjFEdEOZzRlJIfv4344JMQ54q4bQPEKDzFABN93IBrs\ngtNC0jg80dD1HkE7sEaigbuVtPIksBD0fDJlArhwS9lqessruaE="
