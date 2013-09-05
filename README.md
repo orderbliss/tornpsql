@@ -5,7 +5,11 @@ tornpsql
 
 `pip install tornpsql`
 
-`tornpsql` is a simple wrapper around PostgreSQL. Forked from [bdarnell/torndb](https://github.com/bdarnell/torndb) which had originally appeared.
+`tornpsql` is a simple wrapper around PostgreSQL.
+Forked from [bdarnell/torndb](https://github.com/bdarnell/torndb) which was build to support MySQL
+
+
+## Usage
 
 ### Connection Methods
 
@@ -37,3 +41,7 @@ result = con.get("select column from mytable limit 1;")
 con.close()
 del con
 ```
+
+## Future
+- Better integration with [Tornado Web](https://github.com/facebook/tornado)
+  - Asynchronous handlers
