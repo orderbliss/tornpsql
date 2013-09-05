@@ -1,6 +1,6 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
-version = '0.0.2'
+version = '0.0.3'
 
 setup(name='tornpsql',
       version=version,
@@ -13,7 +13,7 @@ setup(name='tornpsql',
       author_email='steve@stevepeak.net',
       url='https://github.com/stevepeak/tornpsql',
       license='Apache v2.0',
-      packages=find_packages(exclude=['tornpsql']),
+      packages=['tornpsql'],
       include_package_data=True,
       zip_safe=False,
       install_requires=[
