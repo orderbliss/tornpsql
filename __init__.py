@@ -1,1 +1,0 @@
-from tornpsql import *
