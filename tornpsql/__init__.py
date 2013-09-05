@@ -23,7 +23,7 @@ class Connection(object):
         else:
             self.host = host_or_url
             self.database = database
-            args = dict(host=host_or_url, database=database, port=port, 
+            args = dict(host=host_or_url, database=database, port=int(port), 
                         user=user, password=password)
 
         self._db = None
