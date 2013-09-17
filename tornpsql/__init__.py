@@ -17,7 +17,7 @@ class Connection(object):
     def __init__(self, host_or_url, database=None, user=None, password=None, port=5432):
         self.logging = False
         if host_or_url.startswith('postgres://'):
-            args = re.search('postgres://(?P<user>[\w\-]+):(?P<password>[\w\-]*)@(?P<host>.*):(?P<port>\d+)/(?P<database>[\w\-]+)', host_or_url).groupdict()
+            args = re.search('postgres://(?P<user>[\w\-]+):?(?P<password>[\w\-]*)@(?P<host>.*):(?P<port>\d+)/(?P<database>[\w\-]+)', host_or_url).groupdict()
             self.host = args.get('host')
             self.database = args.get('database')
         else:
