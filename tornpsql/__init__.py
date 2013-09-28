@@ -4,8 +4,8 @@ import logging
 import psycopg2
 import re
 
-__version__ = VERSION = version = '0.0.4'
-version_info = (0, 0, 4)
+__version__ = VERSION = version = '0.0.5'
+version_info = (0, 0, 5)
 
 
 class Connection(object):
