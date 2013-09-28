@@ -4,7 +4,7 @@ import os
 
 
 class tornpsqlTests(unittest.TestCase):
-    def testOne(self):
+    def test_one(self):
         user = os.getenv("TORNPSQL_USERNAME")
         password = os.getenv("TORNPSQL_PASSWORD")
         host = os.getenv("TORNPSQL_HOST")
@@ -44,7 +44,7 @@ class tornpsqlTests(unittest.TestCase):
         db.close()
         self.assertEquals(db._db, None)
 
-    def testTwo(self):
+    def test_two(self):
         user = os.getenv("TORNPSQL_USERNAME")
         password = os.getenv("TORNPSQL_PASSWORD")
         host = os.getenv("TORNPSQL_HOST")
@@ -55,8 +55,5 @@ class tornpsqlTests(unittest.TestCase):
         self.assertEquals(db._db.closed, 0)
         del db
 
-def main():
-    unittest.main()
-
 if __name__ == '__main__':
-    main()
+    unittest.main()

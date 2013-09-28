@@ -9,5 +9,3 @@ env:
     - secure: "Ra9fh6PVw6PBjysE3tHE44+kS8Ut8ElNUk58SaQW0i4PWya1aRynBr2hVy+U\n/jgFAN6JADmCKB3q9tzgAEU2pB5FWqYB1YVpx7zTIUFBljVKjtJ++tG9EMrs\n2fBeYzGU48VU+eWBEEooBM+qySczRGzPSpoITd9L6emHWxz/BgU="
 script:
   - python -m tornpsql.tests
-notifications:
-  email: false
