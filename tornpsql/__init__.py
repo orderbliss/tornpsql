@@ -1,16 +1,11 @@
 #!/usr/bin/env python
-
-"""A lightweight wrapper around PostgreSQL.
-Ported from http://github.com/bdarnell/torndb
-"""
-
 import itertools
 import logging
 import psycopg2
 import re
 
-version = "0.0.3"
-version_info = (0, 0, 3)
+__version__ = VERSION = version = '0.0.4'
+version_info = (0, 0, 4)
 
 
 class Connection(object):
