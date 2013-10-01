@@ -44,7 +44,10 @@ class Connection(object):
         self.close()
         self._db = psycopg2.connect(**self._db_args)
         self._db.autocommit = True
-        psycopg2.extras.register_hstore(self._db, globally=True)
+        try:
+            psycopg2.extras.register_hstore(self._db, globally=True)
+        except psycopg2.ProgrammingError:
+            pass
 
     def hstore(self, dict):
         return ','.join(['"%s"=>"%s"' % (str(k), str(v)) for k, v in dict.items()])
