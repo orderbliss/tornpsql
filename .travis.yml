@@ -3,9 +3,11 @@ python:
   - "2.7"
 env:
   global:
-    - secure: "C2j48xbad+wBz8abKG/BoF8icFK2U+byZ9+Fx667yecdRtzzt7oBSCyhfN7k\nha2Ab1FM6I88RaNg4BjFEdEOZzRlJIfv4344JMQ54q4bQPEKDzFABN93IBrs\ngtNC0jg80dD1HkE7sEaigbuVtPIksBD0fDJlArhwS9lqessruaE="
-    - secure: "RbFut7b3at1GbQrarUdlv70L3oT4Np2LKg9d4vFd8d6wJDKpeuIicmVFIpZh\nMtnB7QLnlSN0/dwyGvkz3RQ19ml6pqXuxUOmPXPYY0grS5V38tOjXc78U19W\nBMjKzqgw8O9/iqJo1lwIuBce1b+cSuL3q+7yBk5iYMRDh2+AD78="
-    - secure: "mI+68UEtVx58PQ9yL/t/TEsWGLW6NUzbCVoXOE3LXmSJ49OEjaZuxYzaPFFr\nrIJb/pDynf+5AoFwhfoGVPyLkHiIuzUEBOhYqqvSDcrFblYorpA1AyrSDTw5\nrBoLcc38QRfXZR2Oa1JquKnQAxvAo1bVvG3A9uiQXSA/L9rgsJ4="
-    - secure: "Ra9fh6PVw6PBjysE3tHE44+kS8Ut8ElNUk58SaQW0i4PWya1aRynBr2hVy+U\n/jgFAN6JADmCKB3q9tzgAEU2pB5FWqYB1YVpx7zTIUFBljVKjtJ++tG9EMrs\n2fBeYzGU48VU+eWBEEooBM+qySczRGzPSpoITd9L6emHWxz/BgU="
+    - TORNPSQL_USERNAME=postgres
+    - TORNPSQL_HOST=127.0.0.1
+    - TORNPSQL_DATABASE=tornpsql
+services: postgres
+before_script:
+  - psql -c 'create database tornpsql;' -U postgres
 script:
   - python -m tornpsql.tests

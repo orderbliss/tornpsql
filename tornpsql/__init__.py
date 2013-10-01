@@ -2,10 +2,11 @@
 import itertools
 import logging
 import psycopg2
+import psycopg2.extras
 import re
 
-__version__ = VERSION = version = '0.0.5'
-version_info = (0, 0, 5)
+__version__ = VERSION = version = '0.0.6'
+version_info = (0, 0, 6)
 
 
 class Connection(object):
@@ -43,6 +44,10 @@ class Connection(object):
         self.close()
         self._db = psycopg2.connect(**self._db_args)
         self._db.autocommit = True
+        psycopg2.extras.register_hstore(self._db, globally=True)
+
+    def hstore(self, dict):
+        return ','.join(['"%s"=>"%s"' % (str(k), str(v)) for k, v in dict.items()])
 
     def mogrify(self, query, *parameters):
         """From http://initd.org/psycopg/docs/cursor.html?highlight=mogrify#cursor.mogrify

@@ -6,10 +6,9 @@ import os
 class tornpsqlTests(unittest.TestCase):
     def test_one(self):
         user = os.getenv("TORNPSQL_USERNAME")
-        password = os.getenv("TORNPSQL_PASSWORD")
         host = os.getenv("TORNPSQL_HOST")
         database = os.getenv("TORNPSQL_DATABASE")
-        db = tornpsql.Connection(host, database, user, password)
+        db = tornpsql.Connection(host, database, user)
         # assert database connection
         self.assertEquals(db._db.closed, 0)
         db.execute("DROP TABLE IF EXISTS tornpsql_test;")
@@ -46,14 +45,22 @@ class tornpsqlTests(unittest.TestCase):
 
     def test_two(self):
         user = os.getenv("TORNPSQL_USERNAME")
-        password = os.getenv("TORNPSQL_PASSWORD")
         host = os.getenv("TORNPSQL_HOST")
         database = os.getenv("TORNPSQL_DATABASE")
-        url = "postgres://%s:%s@%s:5432/%s" % (user, password, host, database)
+        url = "postgres://%s:@%s:5432/%s" % (user, host, database)
         # connect via url method
         db = tornpsql.Connection(url)
         self.assertEquals(db._db.closed, 0)
         del db
+
+    def test_three(self):
+        db = tornpsql.Connection(os.getenv("TORNPSQL_HOST"), os.getenv("TORNPSQL_DATABASE"), os.getenv("TORNPSQL_USERNAME"))
+        db.execute("create extension if not exists hstore;")
+        db.execute("create table if not exists hstore_test (demo hstore);")
+        d = dict(value1="1", value2="2", value3="eric da man")
+        self.assertEqual(db.hstore(d), '"value3"=>"eric da man","value2"=>"2","value1"=>"1"')
+        db.execute("insert into hstore_test values (%s);", db.hstore(d))
+        self.assertDictEqual(db.get("SELECT demo from hstore_test limit 1;").demo, d)
 
 if __name__ == '__main__':
     unittest.main()
