@@ -1,6 +1,7 @@
 import unittest
 import tornpsql
 import os
+from decimal import Decimal
 
 
 class tornpsqlTests(unittest.TestCase):
@@ -61,6 +62,14 @@ class tornpsqlTests(unittest.TestCase):
         self.assertEqual(db.hstore(d), '"value3"=>"eric da man","value2"=>"2","value1"=>"1"')
         db.execute("insert into hstore_test values (%s);", db.hstore(d))
         self.assertDictEqual(db.get("SELECT demo from hstore_test limit 1;").demo, d)
+
+    def test_four(self):
+        db = tornpsql.Connection(os.getenv("TORNPSQL_HOST"), os.getenv("TORNPSQL_DATABASE"), os.getenv("TORNPSQL_USERNAME"))
+        db.execute("create table if not exists test_money (x money);")
+        db.execute("insert into test_money values (5.99::money);")
+        money = db.get("select x from test_money limit 1;").x
+        self.assertEqual(money, Decimal("5.99"))
+        self.assertTrue(isinstance(money, Decimal))
 
 if __name__ == '__main__':
     unittest.main()

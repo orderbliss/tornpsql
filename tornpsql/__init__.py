@@ -4,8 +4,9 @@ import logging
 import psycopg2
 import psycopg2.extras
 import re
+from decimal import Decimal
 
-__version__ = VERSION = version = '0.0.7'
+__version__ = VERSION = version = '0.0.8'
 
 
 class Connection(object):
@@ -43,6 +44,10 @@ class Connection(object):
         self.close()
         self._db = psycopg2.connect(**self._db_args)
         self._db.autocommit = True
+
+        # regester money type
+        psycopg2.extensions.register_type(psycopg2.extensions.new_type((790,), "MONEY", self._cast_money))
+
         try:
             psycopg2.extras.register_hstore(self._db, globally=True)
         except psycopg2.ProgrammingError:
@@ -50,6 +55,11 @@ class Connection(object):
 
     def hstore(self, dict):
         return ','.join(['"%s"=>"%s"' % (str(k), str(v)) for k, v in dict.items()])
+
+    def _cast_money(self, s, cur):
+        if s is None:
+            return None
+        return Decimal(s.replace(",","").replace("$",""))
 
     def mogrify(self, query, *parameters):
         """From http://initd.org/psycopg/docs/cursor.html?highlight=mogrify#cursor.mogrify
