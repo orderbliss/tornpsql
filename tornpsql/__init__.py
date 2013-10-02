@@ -5,8 +5,7 @@ import psycopg2
 import psycopg2.extras
 import re
 
-__version__ = VERSION = version = '0.0.6'
-version_info = (0, 0, 6)
+__version__ = VERSION = version = '0.0.7'
 
 
 class Connection(object):

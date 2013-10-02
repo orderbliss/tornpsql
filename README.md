@@ -6,7 +6,7 @@ tornpsql
 `pip install tornpsql`
 
 `tornpsql` is a simple wrapper around PostgreSQL.
-Forked from [bdarnell/torndb](https://github.com/bdarnell/torndb) which was build to support MySQL
+Ported from [bdarnell/torndb](https://github.com/bdarnell/torndb) which was build to support MySQL
 
 
 ## Usage
