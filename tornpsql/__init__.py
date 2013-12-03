@@ -6,7 +6,7 @@ import psycopg2.extras
 import re
 from decimal import Decimal
 
-__version__ = VERSION = version = '0.0.8'
+__version__ = VERSION = version = '0.0.9'
 
 
 class Connection(object):
@@ -24,6 +24,7 @@ class Connection(object):
 
         self._db = None
         self._db_args = args
+        self._register_types = []
         try:
             self.reconnect()
         except Exception:
@@ -45,8 +46,12 @@ class Connection(object):
         self._db = psycopg2.connect(**self._db_args)
         self._db.autocommit = True
 
-        # regester money type
+        # register money type
         psycopg2.extensions.register_type(psycopg2.extensions.new_type((790,), "MONEY", self._cast_money))
+
+        # register custom types
+        for _type in self._register_types:
+            psycopg2.extensions.register_type(psycopg2.extensions.new_type(*_type))
 
         try:
             psycopg2.extras.register_hstore(self._db, globally=True)
@@ -60,6 +65,16 @@ class Connection(object):
         if s is None:
             return None
         return Decimal(s.replace(",","").replace("$",""))
+
+    def register_type(self, oids, name, casting):
+        """Callback to register data types when reconnect
+        """
+        assert type(oids) is tuple
+        assert type(name) in (unicode, str)
+        assert hasattr(casting, "__call__")
+        self._register_types.append((oids, name, casting))
+        if self._db is not None:
+            psycopg2.extensions.register_type(psycopg2.extensions.new_type(oids, name, casting))
 
     def mogrify(self, query, *parameters):
         """From http://initd.org/psycopg/docs/cursor.html?highlight=mogrify#cursor.mogrify
