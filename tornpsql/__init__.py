@@ -6,8 +6,9 @@ import psycopg2.extras
 import re
 from decimal import Decimal
 
-__version__ = VERSION = version = '0.0.9'
+__version__ = VERSION = version = '0.1.0'
 
+from .pubsub import PubSub
 
 class Connection(object):
     def __init__(self, host_or_url="127.0.0.1", database=None, user=None, password=None, port=5432):
@@ -164,6 +165,8 @@ class Connection(object):
             self.close()
             raise 
 
+    def pubsub(self):
+        return PubSub(self._db)
 
 class Row(dict):
     """A dict that allows for object-like property access syntax."""
