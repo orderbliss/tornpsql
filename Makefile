@@ -11,4 +11,11 @@ upload:
 	python setup.py sdist upload
 
 test:
-	python -m unittest discover -s tests
+	. venv/bin/activate; pip uninstall -y tornpsql
+	. venv/bin/activate; python setup.py install
+	. venv/bin/activate; python -m unittest discover -s tests
+
+venv:
+	virtualenv venv
+	. venv/bin/activate; pip install -r requirements.txt
+	. venv/bin/activate; python setup.py install
