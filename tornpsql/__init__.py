@@ -152,13 +152,13 @@ class Connection(object):
 
     def _execute(self, cursor, query, parameters):
         try:
-            if self.logging:
-                logging.info(cursor.mogrify(query, parameters))
             if self._change_path and not re.search(r'set search_path', query, re.I):
                 query = ("set search_path = %s;" % self._change_path) + query
                 self._change_path = None
             elif self._search_path and not re.search(r'set search_path', query, re.I):
                 query = ("set search_path = %s;" % self._search_path) + query
+            if self.logging:
+                logging.info(cursor.mogrify(query, parameters))
             cursor.execute(query, parameters)
         except psycopg2.OperationalError as e:
             logging.error("Error connecting to PostgreSQL on %s, %s", self.host, e)
@@ -168,13 +168,13 @@ class Connection(object):
     def _executemany(self, cursor, query, parameters):
         """The function is mostly useful for commands that update the database: any result set returned by the query is discarded."""
         try:
-            if self.logging:
-                logging.info(cursor.mogrify(query, parameters))
             if self._change_path and not re.search(r'set search_path', query, re.I):
                 query = ("set search_path = %s;" % self._change_path) + query
                 self._change_path = None
             elif self._search_path and not re.search(r'set search_path', query, re.I):
                 query = ("set search_path = %s;" % self._search_path) + query
+            if self.logging:
+                logging.info(cursor.mogrify(query, parameters))
             cursor.executemany(query, parameters)
         except psycopg2.OperationalError as e:
             logging.error("Error connecting to PostgreSQL on %s, e", self.host, e)
