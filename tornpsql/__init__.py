@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-import itertools
+import re
 import logging
 import psycopg2
+import itertools
 import psycopg2.extras
-import re
 from decimal import Decimal
 
 __version__ = VERSION = version = '0.1.0'
@@ -11,7 +11,7 @@ __version__ = VERSION = version = '0.1.0'
 from .pubsub import PubSub
 
 class Connection(object):
-    def __init__(self, host_or_url="127.0.0.1", database=None, user=None, password=None, port=5432):
+    def __init__(self, host_or_url="127.0.0.1", database=None, user=None, password=None, port=5432, search_path=None):
         self.logging = False
         if host_or_url.startswith('postgres://'):
             args = re.search('postgres://(?P<user>[\w\-]*):?(?P<password>[\w\-]*)@(?P<host>[\w\-\.]+):?(?P<port>\d+)/?(?P<database>[\w\-]+)', host_or_url).groupdict()
@@ -26,6 +26,8 @@ class Connection(object):
         self._db = None
         self._db_args = args
         self._register_types = []
+        self._search_path = search_path
+        self._change_path = None
         try:
             self.reconnect()
         except Exception:
@@ -58,6 +60,10 @@ class Connection(object):
             psycopg2.extras.register_hstore(self._db, globally=True)
         except psycopg2.ProgrammingError:
             pass
+
+    def path(self, search_path):
+        self._change_path = search_path
+        return self
 
     def hstore(self, dict):
         return ','.join(['"%s"=>"%s"' % (str(k), str(v)) for k, v in dict.items()])
@@ -148,6 +154,11 @@ class Connection(object):
         try:
             if self.logging:
                 logging.info(cursor.mogrify(query, parameters))
+            if self._change_path and not re.search(r'set search_path', query, re.I):
+                query = ("set search_path = %s;" % self._change_path) + query
+                self._change_path = None
+            elif self._search_path and not re.search(r'set search_path', query, re.I):
+                query = ("set search_path = %s;" % self._search_path) + query
             cursor.execute(query, parameters)
         except psycopg2.OperationalError as e:
             logging.error("Error connecting to PostgreSQL on %s, %s", self.host, e)
@@ -159,6 +170,11 @@ class Connection(object):
         try:
             if self.logging:
                 logging.info(cursor.mogrify(query, parameters))
+            if self._change_path and not re.search(r'set search_path', query, re.I):
+                query = ("set search_path = %s;" % self._change_path) + query
+                self._change_path = None
+            elif self._search_path and not re.search(r'set search_path', query, re.I):
+                query = ("set search_path = %s;" % self._search_path) + query
             cursor.executemany(query, parameters)
         except psycopg2.OperationalError as e:
             logging.error("Error connecting to PostgreSQL on %s, e", self.host, e)
