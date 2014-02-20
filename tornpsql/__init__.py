@@ -7,7 +7,7 @@ import itertools
 import psycopg2.extras
 from decimal import Decimal
 
-__version__ = VERSION = version = '0.1.1'
+__version__ = VERSION = version = '0.2.0'
 
 from .pubsub import PubSub
 
