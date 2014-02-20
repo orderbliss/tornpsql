@@ -5,9 +5,12 @@ Tornpsql [![Build Status](https://secure.travis-ci.org/stevepeak/tornpsql.png)](
 
 > Forked/ported from [bdarnell/torndb](https://github.com/bdarnell/torndb) which is build to support MySQL
 
+## Features (beyond query)
+- [Set search_path](#set-search_path)
+- [Query Files](#query-files)
+- [Pubsub](#pubsub)
 
-## Connect and Query
-
+## Usage
 ```python
 # Method 1
 import tornpsql
@@ -17,6 +20,31 @@ results = db.query("select column from mytable")
 import tornpsql
 db = tornpsql.Connection("127.0.0.1", "database", "postgres", "postgres-user", 5432)
 results = db.query("select column from mytable")
+```
+
+## Set search_path
+Set the `search_path` for the duration of the proceeding query.
+
+```python
+# set the "default" search_path to public
+db = tornpsql.Connection(search_path="public")
+results = db.path("another_schema").query("select column from mytable")
+results = db.path("another_schema,and_another").query("select column from mytable")
+```
+
+## Query Files
+```sql
+>>> main.sql
+create table example (id serial primary key);
+\ir other.sql
+
+>>> other.sql
+insert into example values (1, 2, 3);
+```
+
+```python
+db = tornpsql.Connection()
+db.file("main.sql")
 ```
 
 ## PubSub
