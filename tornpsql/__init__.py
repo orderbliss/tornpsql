@@ -185,17 +185,15 @@ class Connection(object):
     def pubsub(self):
         return PubSub(self._db)
 
-    def file(self, path, execute=True):
+    def file(self, path, _execute=True):
         base = os.path.dirname(path)
         with open(path) as r:
-            sql = re.sub(r'\\ir\s(.*)', lambda m: self.file(os.path.join(base, m.groups()[0]), False), r.read(), re.M)
-        if execute:
+            sql = re.sub(r'\\ir\s(.*)', lambda m: self.file(os.path.join(base, m.groups()[0]), False), r.read())
+        if _execute:
             cursor = self._cursor()
             cursor.execute(sql)
         else:
             return sql
-
-
 
 class Row(dict):
     """A dict that allows for object-like property access syntax."""
