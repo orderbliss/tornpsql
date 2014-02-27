@@ -195,6 +195,15 @@ class Connection(object):
         else:
             return sql
 
+    @property
+    def notices(self):
+        """pops and returns all notices
+        http://initd.org/psycopg/docs/connection.html#connection.notices
+        """
+        if self._db:
+            return [self._db.notices.pop()[8:].strip() for x in range(len(self._db.notices))]
+        return []
+
 class Row(dict):
     """A dict that allows for object-like property access syntax."""
     def __getattr__(self, name):
