@@ -191,7 +191,12 @@ class Connection(object):
             sql = re.sub(r'\\ir\s(.*)', lambda m: self.file(os.path.join(base, m.groups()[0]), False), r.read())
         if _execute:
             cursor = self._cursor()
-            cursor.execute(sql)
+            if self._change_path:
+                sql = ("set search_path = %s;" % self._change_path) + sql
+                self._change_path = None
+            elif self._search_path:
+                sql = ("set search_path = %s;" % self._search_path) + sql
+            return cursor.execute(sql)
         else:
             return sql
 
