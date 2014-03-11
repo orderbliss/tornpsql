@@ -97,11 +97,11 @@ class Connection(object):
             cursor.close()
             raise
 
-    def query(self, query, *parameters):
+    def query(self, query, *parameters, **kwargs):
         """Returns a row list for the given query and parameters."""
         cursor = self._cursor()
         try:
-            self._execute(cursor, query, parameters)    
+            self._execute(cursor, query, parameters, kwargs)    
             if cursor.description:
                 column_names = [column.name for column in cursor.description]
                 return [Row(itertools.izip(column_names, row)) for row in cursor.fetchall()]
@@ -113,9 +113,9 @@ class Connection(object):
         """Alias for query"""
         return self.query(query, *parameters)
 
-    def get(self, query, *parameters):
+    def get(self, query, *parameters, **kwargs):
         """Returns the first row returned for the given query."""
-        rows = self.query(query, *parameters)
+        rows = self.query(query, *parameters, **kwargs)
         if not rows:
             return None
         elif len(rows) > 1:
@@ -134,11 +134,11 @@ class Connection(object):
             cursor.close()
             raise
 
-    def execute_rowcount(self, query, *parameters):
+    def execute_rowcount(self, query, *parameters, **kwargs):
         """Executes the given query, returning the rowcount from the query."""
         cursor = self._cursor()
         try:
-            self._execute(cursor, query, parameters)
+            self._execute(cursor, query, parameters, kwargs)
             return cursor.rowcount
         finally:
             cursor.close()
@@ -151,13 +151,26 @@ class Connection(object):
         self._ensure_connected()
         return self._db.cursor()
 
-    def _execute(self, cursor, query, parameters):
+    def _execute(self, cursor, query, parameters, kwargs):
         try:
             if self._change_path and not re.search(r'set search_path', query, re.I):
                 query = ("set search_path = %s;" % self._change_path) + query
                 self._change_path = None
             elif self._search_path and not re.search(r'set search_path', query, re.I):
                 query = ("set search_path = %s;" % self._search_path) + query
+            if kwargs:
+                keys = []
+                values = []
+                for key in kwargs:
+                    keys.append(key+"=%s")
+                    values.append(kwargs[key])
+                parampos = min([x for x, part in enumerate(query.split("%s")) if part.find('__data__') > -1])
+                values.reverse()
+                parameters = list(parameters)
+                [parameters.insert(parampos, value) for value in values]
+                query = query.replace("__data__", ','.join(keys))
+                parameters = tuple(parameters)
+                
             if self.logging:
                 logging.info(cursor.mogrify(query, parameters))
             cursor.execute(query, parameters)
