@@ -163,16 +163,22 @@ class Connection(object):
         try:
             query = self._set_search_path(query)
             if kwargs:
+                datas = []
                 keys = []
                 values = []
+                args = []
                 for key in kwargs:
-                    keys.append(key+"=%s")
-                    values.append(kwargs[key])
-                parampos = min([x for x, part in enumerate(query.split("%s")) if part.find('__data__') > -1])
-                values.reverse()
+                    keys.append(key) # for insert
+                    values.append("%s") # for insert
+                    datas.append(key+"=%s") # for update
+                    args.append(kwargs[key])
+                parampos = min([x for x, part in enumerate(query.split("%s")) if part.find('__data__') > -1] or [0])
+                args.reverse()
                 parameters = list(parameters)
-                [parameters.insert(parampos, value) for value in values]
-                query = query.replace("__data__", ','.join(keys))
+                [parameters.insert(parampos, value) for value in args]
+                query = query.replace("__data__", ','.join(datas))
+                query = query.replace("__keys__", ','.join(keys))
+                query = query.replace("__values__", ','.join(values))
                 parameters = tuple(parameters)
                 
             if self.logging:
