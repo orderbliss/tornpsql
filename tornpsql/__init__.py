@@ -66,6 +66,9 @@ class Connection(object):
         self._change_path = search_path
         return self
 
+    def adapt(self, value):
+        return self.mogrify("%s", value);
+
     def hstore(self, dict):
         return ','.join(['"%s"=>"%s"' % (str(k), str(v)) for k, v in dict.items()])
 
