@@ -12,7 +12,7 @@ __version__ = VERSION = version = '0.2.0'
 from .pubsub import PubSub
 
 class Connection(object):
-    def __init__(self, host_or_url="127.0.0.1", database=None, user=None, password=None, port=5432, search_path=None):
+    def __init__(self, host_or_url="127.0.0.1", database=None, user=None, password=None, port=5432, search_path=None, timezone="+00"):
         self.logging = False
         if host_or_url.startswith('postgres://'):
             args = re.search('postgres://(?P<user>[\w\-]*):?(?P<password>[\w\-]*)@(?P<host>[\w\-\.]+):?(?P<port>\d+)/?(?P<database>[\w\-]+)', host_or_url).groupdict()
@@ -24,6 +24,7 @@ class Connection(object):
             args = dict(host=host_or_url, database=database, port=int(port), 
                         user=user, password=password)
 
+        self.timezone = timezone
         self._db = None
         self._db_args = args
         self._register_types = []
@@ -160,6 +161,8 @@ class Connection(object):
             self._change_path = None
         elif self._search_path and not re.search(r'^set search_path', query, re.I):
             query = ("set search_path = %s;" % self._search_path) + query
+        if self.timezone:
+            query = ("set timezone = '%s';" % self.timezone) + query
         return query
 
     def _execute(self, cursor, query, parameters, kwargs):
