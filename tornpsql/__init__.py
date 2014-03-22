@@ -188,7 +188,7 @@ class Connection(object):
                 parameters = tuple(parameters)
                 
             if self.logging:
-                logging.info(cursor.mogrify(query, parameters))
+                logging.info(re.sub(r"\n\s*", " ", cursor.mogrify(query, parameters)))
             cursor.execute(query, parameters)
         except psycopg2.OperationalError as e:
             logging.error("Error connecting to PostgreSQL on %s, %s", self.host, e)
@@ -200,7 +200,7 @@ class Connection(object):
         try:
             query = self._set_search_path(query)
             if self.logging:
-                logging.info(cursor.mogrify(query, parameters))
+                logging.info(re.sub(r"\n\s*", " ", cursor.mogrify(query, parameters)))
             cursor.executemany(query, parameters)
         except psycopg2.OperationalError as e:
             logging.error("Error connecting to PostgreSQL on %s, e", self.host, e)
