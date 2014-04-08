@@ -6,10 +6,12 @@ import psycopg2
 import itertools
 import psycopg2.extras
 from decimal import Decimal
+from psycopg2.extensions import adapt
 
 __version__ = VERSION = version = '0.2.0'
 
 from .pubsub import PubSub
+
 
 class Connection(object):
     def __init__(self, host_or_url="127.0.0.1", database=None, user=None, password=None, port=5432, search_path=None, timezone="+00"):
@@ -68,7 +70,7 @@ class Connection(object):
         return self
 
     def adapt(self, value):
-        return self.mogrify("%s", value);
+        return adapt(value)
 
     def hstore(self, dict):
         return ','.join(['"%s"=>"%s"' % (str(k), str(v)) for k, v in dict.items()])
