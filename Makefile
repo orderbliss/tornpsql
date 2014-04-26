@@ -11,9 +11,7 @@ upload:
 	python setup.py sdist upload
 
 test:
-	. venv/bin/activate; pip uninstall -y tornpsql
-	. venv/bin/activate; python setup.py install
-	. venv/bin/activate; python -m unittest discover -s tests
+	. venv/bin/activate; nosetests --with-coverage --cover-package=tornpsql --cover-html --cover-html-dir=coverage_html_report
 
 venv:
 	virtualenv venv
