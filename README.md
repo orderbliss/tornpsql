@@ -1,4 +1,4 @@
-Tornpsql [![Build Status](https://secure.travis-ci.org/stevepeak/tornpsql.png)](http://travis-ci.org/stevepeak/tornpsql) [![Version](https://pypip.in/v/tornpsql/badge.png)](https://github.com/stevepeak/tornpsql)
+Tornpsql [![Build Status](https://secure.travis-ci.org/stevepeak/tornpsql.png)](http://travis-ci.org/stevepeak/tornpsql) [![Version](https://pypip.in/v/tornpsql/badge.png)](https://github.com/stevepeak/tornpsql) [![Coverage Status](https://coveralls.io/repos/stevepeak/tornpsql/badge.png)](https://coveralls.io/r/stevepeak/tornpsql)
 ======
 
 `pip install tornpsql`
