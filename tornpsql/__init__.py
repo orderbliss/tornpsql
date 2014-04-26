@@ -8,7 +8,7 @@ import psycopg2.extras
 from decimal import Decimal
 from psycopg2.extensions import adapt
 
-__version__ = VERSION = version = '0.2.0'
+__version__ = VERSION = version = '0.2.1'
 
 from .pubsub import PubSub
 
