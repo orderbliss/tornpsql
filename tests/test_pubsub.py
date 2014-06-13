@@ -1,61 +1,45 @@
-import unittest
-import tornpsql
-import os
-import threading
 import time
+import unittest
+import threading
+
+import tornpsql
+
 
 class PubSubThread(threading.Thread):
-    def __init__(self, ut):
+    def __init__(self):
         threading.Thread.__init__(self)
-        self.ut = ut
+        self.db = tornpsql.Connection()
+        self.pubsub = self.db.pubsub()
+        self.go = True
 
     def run(self):
-        user = os.getenv("TORNPSQL_USERNAME")
-        host = os.getenv("TORNPSQL_HOST")
-        database = os.getenv("TORNPSQL_DATABASE")
-        db = tornpsql.Connection(host, database, user)
-        self.pubsub = db.pubsub()
         self.pubsub.subscribe(("example", "other"))
-        for notify in self.pubsub.listen():
-            assert notify.channel in self.pubsub._channels
-            if notify.channel == 'example':
-                self.ut.assertEquals('Hello World', notify.payload)
-            elif notify.channel == 'other':
-                break
+        while self.go:
+            for notify in self.pubsub.listen():
+                self.db.query("insert into notices (channel, payload) values (%s, %s);", notify.channel, notify.payload)
+                if notify.channel == 'other':
+                    self.go = False
+                    del self.db
 
 
 class tornpsqlTests(unittest.TestCase):
-    def test_one(self):
-        p = PubSubThread(self)
-        p.start()
-        user = os.getenv("TORNPSQL_USERNAME")
-        host = os.getenv("TORNPSQL_HOST")
-        database = os.getenv("TORNPSQL_DATABASE")
-        db = tornpsql.Connection(host, database, user)
-        time.sleep(1)
-        db.execute("select pg_notify('example', 'Hello World');")
-        time.sleep(1)
-        db.execute("select pg_notify('other', 'Hello World');")
-        time.sleep(1)
-        del p
-
-    def test_two(self):
-        p = PubSubThread(self)
-        p.start()
-        user = os.getenv("TORNPSQL_USERNAME")
-        host = os.getenv("TORNPSQL_HOST")
-        database = os.getenv("TORNPSQL_DATABASE")
-        db = tornpsql.Connection(host, database, user)
-        time.sleep(1)
-        db.execute("select pg_notify('example', 'Hello World');")
-        time.sleep(1)
-        p.pubsub.unsubscribe('example')
-        self.assertTrue('example' not in p.pubsub._channels)
-        self.assertTrue('other' in p.pubsub._channels)
-        db.execute("select pg_notify('other', 'Hello World');")
-        time.sleep(1)
-        del p
-
+    def test_pubsub(self):
+        "can listen via pubsub"
+        db = tornpsql.Connection()
+        pubsub = PubSubThread()
+        pubsub.start()
+        time.sleep(.1)
         
-if __name__ == '__main__':
-    unittest.main()
+        db.execute("select pg_notify('example', 'Hello world!');")
+        time.sleep(.1)
+        self.assertListEqual(db.query("SELECT * from notices"), [{"id": 1, "channel": "example", "payload": "Hello world!"}])
+        
+        db.execute("select pg_notify('other', 'Hello other world...?');")
+        time.sleep(.1)
+        self.assertItemsEqual(db.query("SELECT * from notices"), [{"id": 1, "channel": "example", "payload": "Hello world!"},
+                                                                  {"id": 2, "channel": "other", "payload": "Hello other world...?"}])
+
+        db.execute("select pg_notify('notlistening', 'Hello other world...?');")
+        time.sleep(.1)
+        self.assertItemsEqual(db.query("SELECT * from notices"), [{"id": 1, "channel": "example", "payload": "Hello world!"},
+                                                                  {"id": 2, "channel": "other", "payload": "Hello other world...?"}])

@@ -5,8 +5,20 @@ import logging
 import psycopg2
 import itertools
 import psycopg2.extras
-from decimal import Decimal
 from psycopg2.extensions import adapt
+
+# http://initd.org/psycopg/docs/module.html#exceptions
+from psycopg2 import Warning
+from psycopg2 import Error
+from psycopg2 import InterfaceError
+from psycopg2 import DatabaseError
+from psycopg2 import DataError
+from psycopg2 import OperationalError
+from psycopg2 import IntegrityError
+from psycopg2 import InternalError
+from psycopg2 import ProgrammingError
+from psycopg2 import NotSupportedError
+
 
 __version__ = VERSION = version = '0.2.1'
 
@@ -14,8 +26,10 @@ from .pubsub import PubSub
 
 
 class Connection(object):
-    def __init__(self, host_or_url="127.0.0.1", database=None, user=None, password=None, port=5432, search_path=None, timezone="+00"):
+    def __init__(self, host_or_url=None, database=None, user=None, password=None, port=5432, search_path=None, timezone="+00"):
         self.logging = False
+        if host_or_url is None:
+            host_or_url = os.getenv('TORNPSQL', "127.0.0.1")
         if host_or_url.startswith('postgres://'):
             args = re.search('postgres://(?P<user>[\w\-]*):?(?P<password>[\w\-]*)@(?P<host>[\w\-\.]+):?(?P<port>\d+)/?(?P<database>[\w\-]+)', host_or_url).groupdict()
             self.host = args.get('host')
@@ -30,11 +44,11 @@ class Connection(object):
         self._db = None
         self._db_args = args
         self._register_types = []
-        self._search_path = search_path
+        self._search_path = search_path or "public"
         self._change_path = None
         try:
             self.reconnect()
-        except Exception:
+        except Exception: # pragma: no cover
             logging.error("Cannot connect to PostgreSQL on postgresql://%s:<password>@%s/%s", 
                 args['user'], self.host, self.database, exc_info=True)
 
@@ -53,8 +67,7 @@ class Connection(object):
         self._db = psycopg2.connect(**self._db_args)
         self._db.autocommit = True
 
-        # register money type
-        psycopg2.extensions.register_type(psycopg2.extensions.new_type((790,), "MONEY", self._cast_money))
+        psycopg2.extensions.register_adapter(dict, psycopg2.extras.Json)
 
         # register custom types
         for _type in self._register_types:
@@ -75,11 +88,6 @@ class Connection(object):
     def hstore(self, dict):
         return ','.join(['"%s"=>"%s"' % (str(k), str(v)) for k, v in dict.items()])
 
-    def _cast_money(self, s, cur):
-        if s is None:
-            return None
-        return Decimal(s.replace(",","").replace("$",""))
-
     def register_type(self, oids, name, casting):
         """Callback to register data types when reconnect
         """
@@ -90,7 +98,7 @@ class Connection(object):
         if self._db is not None:
             psycopg2.extensions.register_type(psycopg2.extensions.new_type(oids, name, casting))
 
-    def mogrify(self, query, *parameters):
+    def mogrify(self, query, *parameters, **kwargs):
         """From http://initd.org/psycopg/docs/cursor.html?highlight=mogrify#cursor.mogrify
         Return a query string after arguments binding.
         The string returned is exactly the one that would be sent to the database running 
@@ -98,8 +106,10 @@ class Connection(object):
         """
         cursor = self._cursor()
         try:
+            if kwargs:
+                return cursor.mogrify(query % dict(map(lambda r: (r[0], adapt(r[1])), kwargs.items())))
             return cursor.mogrify(query, parameters)
-        except:
+        except: # pragma: no cover
             cursor.close()
             raise
 
@@ -170,28 +180,14 @@ class Connection(object):
     def _execute(self, cursor, query, parameters, kwargs):
         try:
             query = self._set_search_path(query)
+            if self.logging: 
+                logging.info(re.sub(r"\n\s*", " ", cursor.mogrify(query, *parameters, **kwargs)))
+
             if kwargs:
-                datas = []
-                keys = []
-                values = []
-                args = []
-                for key in kwargs:
-                    keys.append(key) # for insert
-                    values.append("%s") # for insert
-                    datas.append(key+"=%s") # for update
-                    args.append(kwargs[key])
-                parampos = min([x for x, part in enumerate(query.split("%s")) if part.find('__data__') > -1] or [0])
-                args.reverse()
-                parameters = list(parameters)
-                [parameters.insert(parampos, value) for value in args]
-                query = query.replace("__data__", ','.join(datas))
-                query = query.replace("__keys__", ','.join(keys))
-                query = query.replace("__values__", ','.join(values))
-                parameters = tuple(parameters)
-                
-            if self.logging:
-                logging.info(re.sub(r"\n\s*", " ", cursor.mogrify(query, parameters)))
-            cursor.execute(query, parameters)
+                cursor.execute(query % dict(map(lambda r: (r[0], adapt(r[1])), kwargs.items())))
+            else:
+                cursor.execute(query, parameters)
+
         except psycopg2.OperationalError as e:
             logging.error("Error connecting to PostgreSQL on %s, %s", self.host, e)
             self.close()

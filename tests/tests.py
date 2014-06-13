@@ -1,103 +1,84 @@
+import os
 import unittest
 import tornpsql
-import os
 from decimal import Decimal
 
+from psycopg2.extras import HstoreAdapter
 
 class tornpsqlTests(unittest.TestCase):
-    def test_one(self):
-        user = os.getenv("TORNPSQL_USERNAME")
-        host = os.getenv("TORNPSQL_HOST")
-        database = os.getenv("TORNPSQL_DATABASE")
-        db = tornpsql.Connection(host, database, user)
-        # assert database connection
-        self.assertEquals(db._db.closed, 0)
-        db.execute("DROP TABLE IF EXISTS tornpsql_test;")
-        createtable = db.execute("CREATE TABLE tornpsql_test (id int, name varchar);")
-        self.assertEquals(createtable, None)
+    @classmethod
+    def setUpClass(self):
+        try:
+            self.db = tornpsql.Connection()
+        except:
+            pass
 
-        # single insert
-        insert1 = db.execute("INSERT INTO tornpsql_test values (%s, %s) returning id;", 1, 'Steve')
-        self.assertListEqual(insert1, [{'id': 1}])
-        insert2 = db.execute("INSERT INTO tornpsql_test values (%s, %s) returning id, name;", 2, 'Steve')
-        self.assertListEqual(insert2, [{'id': 2, 'name': 'Steve'}])
-        insert3 = db.get("INSERT INTO tornpsql_test values (%s, %s) returning id;", 3, 'Steve')
-        self.assertDictEqual(insert3, {'id': 3})
-        insert4 = db.query("INSERT INTO tornpsql_test values (%s, %s) returning id;", 4, 'Steve')
-        self.assertListEqual(insert4, [{'id': 4}])
-        db.executemany("INSERT INTO tornpsql_test (id, name) values (%s, %s) returning id",
-                       (5, 'Joe'), [6, "Eric"], (7, "Shawn"))
+    def test_a_file(self):
+        "can execute from file"
+        self.db.file(os.path.join(os.path.dirname(__file__), "test.sql"))
+        self.assertEqual(self.db.get("SELECT count(*) c from public.users;").c, 10)
 
-        # select
-        select1 = db.query("SELECT * from tornpsql_test where id=%s;", 1)
-        self.assertListEqual(select1, [{'id': 1, 'name': 'Steve'}])
-        select2 = db.query("SELECT distinct name from tornpsql_test;")
-        self.assertListEqual(select2, [{'name': 'Shawn'}, {'name': 'Eric'}, {'name': 'Joe'}, {'name': 'Steve'}])
+    def test_connection_args(self):
+        "test connect with args"
+        db = tornpsql.Connection("127.0.0.1", "tornpsql", os.getenv("postgres", None))
+        self.assertTrue(db.get("select true as connected").connected)
 
-        # drop the database
-        droptable = db.execute("DROP TABLE tornpsql_test;")
-        self.assertEquals(droptable, None)
+    def test_registering_type(self):
+        self.skipTest("wip")
+        self.db.register_type()
 
-        # close
-        db.close()
-        self.assertEquals(db._db, None)
+    def test_mogrify(self):
+        "can mogrify w/ inline args"
+        self.assertEqual(self.db.mogrify("select true from user where email=%s;", "joe@smoe.com"),
+                         "select true from user where email='joe@smoe.com';")
 
-    def test_two(self):
-        user = os.getenv("TORNPSQL_USERNAME")
-        host = os.getenv("TORNPSQL_HOST")
-        database = os.getenv("TORNPSQL_DATABASE")
-        url = "postgres://%s:@%s:5432/%s" % (user, host, database)
-        # connect via url method
-        db = tornpsql.Connection(url)
-        self.assertEquals(db._db.closed, 0)
-        del db
+    def test_mogrify_dict(self):
+        "can mogrify w/ dict args"
+        self.assertEqual(self.db.mogrify("select true from user where email=%(email)s;", email="joe@smoe.com"),
+                         "select true from user where email='joe@smoe.com';")
+    
+    def test_connection_from_url(self):
+        "can connect from the os.getenv('TORNPSQL')"
+        db = tornpsql.Connection()
+        self.assertTrue(db.get("select true as connected").connected)
 
-    def test_three(self):
-        db = tornpsql.Connection(os.getenv("TORNPSQL_HOST"), os.getenv("TORNPSQL_DATABASE"), os.getenv("TORNPSQL_USERNAME"))
-        db.execute("DROP EXTENSION if exists hstore cascade;")
-        db.execute("CREATE EXTENSION hstore;")
-        db.execute("DROP TABLE if exists hstore_test;")
-        db.execute("CREATE TABLE hstore_test (demo hstore);")
-        # need to reconnect to utilize the hstore
-        db = tornpsql.Connection(os.getenv("TORNPSQL_HOST"), os.getenv("TORNPSQL_DATABASE"), os.getenv("TORNPSQL_USERNAME"))
-        d = dict(value1="1", value2="2", value3="eric da man")
-        self.assertEqual(db.hstore(d), '"value3"=>"eric da man","value2"=>"2","value1"=>"1"')
-        db.execute("INSERT INTO hstore_test (demo) values (%s);", db.hstore(d))
-        self.assertDictEqual(db.get("SELECT demo from hstore_test limit 1;").demo, d)
+    def test_adapting(self):
+        "can adapt data types outside query"
+        self.assertEqual(self.db.adapt("this").getquoted(), "'this'")
+        self.assertIsInstance(self.db.adapt(dict(value=10)), HstoreAdapter)
 
-    def test_four(self):
-        db = tornpsql.Connection(os.getenv("TORNPSQL_HOST"), os.getenv("TORNPSQL_DATABASE"), os.getenv("TORNPSQL_USERNAME"))
-        db.execute("DROP TABLE if exists test_money;")
-        db.execute("CREATE TABLE if not exists test_money (x money);")
-        db.execute("INSERT INTO test_money values (5.99::money);")
-        money = db.get("SELECT x from test_money limit 1;").x
-        self.assertEqual(money, Decimal("5.99"))
-        self.assertTrue(isinstance(money, Decimal))
+    def test_raises_execptions(self):
+        "can raise all psycopg2 exceptions"
+        self.assertRaises(tornpsql.ProgrammingError, self.db.query, "st nothing from th;")
 
-    def test_kwarg_set(self):
-        db = tornpsql.Connection(os.getenv("TORNPSQL_HOST"), os.getenv("TORNPSQL_DATABASE"), os.getenv("TORNPSQL_USERNAME"))
-        db.execute("DROP TABLE if exists example_update;")
-        db.execute("CREATE TABLE example_update (a int, b text, c int);")
-        db.query("INSERT INTO example_update values (1, 'Hello', 2);")
-        db.query("INSERT INTO example_update values (3, 'Hello', 4);")
-        db.query("UPDATE example_update SET __data__ where a=%s;", 1, b="this is cool!", c=10)
-        data = db.query("SELECT * from example_update order by a asc;")
-        self.assertListEqual(data, [{'a': 1, 'b': 'this is cool!', 'c': 10}, {'a': 3, 'b': 'Hello', 'c': 4}])
+    def test_json(self):
+        "can providing dict as an argument will adapt to json datatype"
+        self.assertDictEqual(self.db.get("select %s::json as data;", dict(data="something")).data, {u'data': u'something'})
+
+    def test_hstore(self):
+        "can parse hstore datatype as dict (kinda)"
+        self.assertDictEqual(self.db.get("SELECT flags from users where flags is not null limit 1;").flags, dict(extra_feature='true'))
+
+    def test_numeric_returns_decimal(self):
+        "floats return Decimals"
+        self.assertEqual(self.db.get("select balance from users where id = 1 limit 1;").balance, Decimal("7.10"))
 
     def test_search_path(self):
-        db = tornpsql.Connection(os.getenv("TORNPSQL_HOST"), os.getenv("TORNPSQL_DATABASE"), os.getenv("TORNPSQL_USERNAME"),
-                                 search_path="public")
-        db.execute("DROP TABLE if exists example_sp;")
-        db.query("CREATE TABLE example_sp (a int);")
-        db.query("INSERT INTO example_sp (a) values (1), (2);")
-        db.execute("DROP SCHEMA if exists other_schema cascade;")
-        db.execute("CREATE SCHEMA other_schema;")
-        db.path('other_schema').execute("DROP TABLE if exists example_sp;")
-        db.path('other_schema').query("CREATE TABLE example_sp (a int);")
-        db.path('other_schema').query("INSERT INTO example_sp (a) values (3), (4);")
-        self.assertListEqual(db.query("SELECT a from example_sp;"), [{'a':1}, {'a':2}])
-        self.assertListEqual(db.path('other_schema').query("SELECT a from example_sp;"), [{'a':3}, {'a':4}])
-        
+        "can set search path of query"
+        self.assertEqual(self.db.get("SELECT name from users where email=%s limit 1;", 'johnnie.jast@hotmail.com').name, 'Ms. Agustin Walter')
+        self.assertIs(self.db.path("schema"), self.db, "calling path did not return the db instance")
+        self.assertEqual(self.db.path("schema")._change_path, "schema", "calling path did not set the temp path name")
+        self.assertEqual(self.db._change_path, "schema", "calling path did not set the temp path name")
+        self.assertEqual(self.db.path("other").get("SELECT name from users where id=1 limit 1;").name, "Mr. John Piere", "schema did not change")
+        self.assertEqual(self.db._change_path, None, "changed path did not reset after query")
 
-if __name__ == '__main__':
-    unittest.main()
+    def test_execute_with_kwargs(self):
+        "can query from keyword arguments"
+        self.assertDictEqual(self.db.get("SELECT x from generate_series(1,10) x where x=%(id)s;", id=1), dict(x=1))
+        self.assertListEqual(self.db.query("SELECT x from generate_series(1,10) x where x > %(g)s and x < %(l)s;", g=1, l=5), [{'x': 2}, {'x': 3}, {'x': 4}])
+
+    def test_notices(self):
+        "can retreive notices"
+        self.db.notices # clear other notices
+        self.db.query("insert into other.users (name) values ('New Customer');")
+        self.assertListEqual(self.db.notices, ["New user inserted"])
