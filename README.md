@@ -5,9 +5,11 @@ Tornpsql [![Build Status](https://secure.travis-ci.org/stevepeak/tornpsql.png)](
 
 > Forked/ported from [bdarnell/torndb](https://github.com/bdarnell/torndb) which is build to support MySQL
 
-## Features (beyond query)
-- [Set search_path](#set-search_path)
-- [Query Files](#query-files)
+## Features
+- Query via `args` or `kwargs`
+- [set search_path](#set-search_path)
+- [Query from Files](#query-files)
+  - including references
 - [Pubsub](#pubsub)
 
 ## Usage
@@ -30,15 +32,20 @@ Set the `search_path` for the duration of the proceeding query.
 db = tornpsql.Connection(search_path="public")
 results = db.path("another_schema").query("select column from mytable")
 results = db.path("another_schema,and_another").query("select column from mytable")
+# this will use search path: "public"
+results = db.query("select column from mytable")
 ```
 
 ## Query Files
+
 ```sql
->>> main.sql
+-- main.sql
 create table example (id serial primary key);
 \ir other.sql
+```
 
->>> other.sql
+```sql
+-- other.sql
 insert into example values (1, 2, 3);
 ```
 

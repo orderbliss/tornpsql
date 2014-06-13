@@ -18,6 +18,9 @@ class tornpsqlTests(unittest.TestCase):
         self.db.file(os.path.join(os.path.dirname(__file__), "test.sql"))
         self.assertEqual(self.db.get("SELECT count(*) c from public.users;").c, 10)
 
+    def test_file_include(self):
+        self.skipTest("wip")
+
     def test_connection_args(self):
         "test connect with args"
         db = tornpsql.Connection("127.0.0.1", "tornpsql", os.getenv("postgres", None))

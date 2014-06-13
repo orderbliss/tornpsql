@@ -8,6 +8,8 @@ env:
     - TORNPSQL=postgres://postgres:@127.0.0.1:5432/tornpsql
     - TORNUSER=postgres
 services: postgres
+addons:
+  postgresql: "9.3"
 before_script:
   - python setup.py install
   - pip install coveralls
