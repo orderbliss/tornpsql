@@ -14,11 +14,11 @@ class PubSubThread(threading.Thread):
         db = tornpsql.Connection()
         pubsub = db.pubsub()
         pubsub.subscribe(("example", "other", "exit"))
-        while db:
-            for notify in pubsub.listen():
-                db.query("insert into notices (channel, payload) values (%s, %s);", notify.channel, notify.payload)
-                if notify.channel == 'exit':
-                    del db
+        for notify in pubsub.listen():
+            db.query("insert into notices (channel, payload) values (%s, %s);", notify.channel, notify.payload)
+            if notify.channel == 'exit':
+                del db
+                break
 
 
 class tornpsqlTests(unittest.TestCase):
@@ -27,6 +27,7 @@ class tornpsqlTests(unittest.TestCase):
         PubSubThread()
         try:
             db = tornpsql.Connection()
+            db.execute("truncate notices restart identity;")
             time.sleep(.1)
             
             db.execute("select pg_notify('example', 'Hello world!');")
@@ -42,6 +43,7 @@ class tornpsqlTests(unittest.TestCase):
             time.sleep(.1)
             self.assertItemsEqual(db.query("SELECT * from notices"), [{"id": 1, "channel": "example", "payload": "Hello world!"},
                                                                       {"id": 2, "channel": "other", "payload": "Hello other world...?"}])
+            db.execute("select pg_notify('exit', null);")
         except:
-            db.execute("select pg_notify('exit');")
+            db.execute("select pg_notify('exit', null);")
             raise

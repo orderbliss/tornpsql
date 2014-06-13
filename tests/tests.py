@@ -13,13 +13,10 @@ class tornpsqlTests(unittest.TestCase):
         except:
             pass
 
-    def test_a_file(self):
-        "can execute from file"
-        self.db.file(os.path.join(os.path.dirname(__file__), "test.sql"))
-        self.assertEqual(self.db.get("SELECT count(*) c from public.users;").c, 10)
-
     def test_file_include(self):
-        self.skipTest("wip")
+        "can reference files relatively"
+        self.db.file(os.path.join(os.path.dirname(__file__), "example.sql"))
+        self.assertTrue(self.db.get("SELECT true as t from public.users where name='Mr. Johnson' limit 1;").t)
 
     def test_connection_args(self):
         "test connect with args"
@@ -27,8 +24,14 @@ class tornpsqlTests(unittest.TestCase):
         self.assertTrue(db.get("select true as connected").connected)
 
     def test_registering_type(self):
-        self.skipTest("wip")
-        self.db.register_type()
+        self.db.register_type((790, ), "MONEY", self._cast_money)
+        # PS: never, ever, ever use money, use numeric type.
+        self.assertEqual(self.db.get("select '5.99'::money as a;").a, Decimal('5.99'))
+
+    def _cast_money(self, s, cur):
+        if s is None:
+            return None
+        return Decimal(s.replace(",","").replace("$",""))
 
     def test_mogrify(self):
         "can mogrify w/ inline args"

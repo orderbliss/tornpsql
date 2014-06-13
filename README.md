@@ -3,9 +3,9 @@ Tornpsql [![Build Status](https://secure.travis-ci.org/stevepeak/tornpsql.png)](
 
 `pip install tornpsql`
 
-> Forked/ported from [bdarnell/torndb](https://github.com/bdarnell/torndb) which is build to support MySQL
+> **PostgreSQL wrapper** forked/ported from [bdarnell/torndb](https://github.com/bdarnell/torndb)
 
-## Features
+## Featuring
 - Query via `args` or `kwargs`
 - [set search_path](#set-search_path)
 - [Query from Files](#query-files)
