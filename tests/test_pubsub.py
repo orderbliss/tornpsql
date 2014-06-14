@@ -56,6 +56,7 @@ class tornpsqlTests(unittest.TestCase):
     def test_unsubscribe(self):
         "can unsubscribe to channels"
         self.db.execute("select pg_notify('unsub', null);")
+        time.sleep(.1)
         self.db.execute("select pg_notify('example', 'Hello world!');")
         time.sleep(.1)
         self.assertEqual(len(self.db.query("SELECT * from notices")), 0)
