@@ -9,18 +9,21 @@ class PubSub(object):
         self._cur = db.cursor()
         self._channels = []
 
+    @property
+    def channels(self):
+        return list(self._channels)
+
     def subscribe(self, channels):
         assert type(channels) in (tuple, list), "Invalid channels. Must be tuple or list of strings"
-        self._channels = list(channels)
+        self._channels = set(list(self._channels) + list(channels))
 
-    def unsubscribe(self, channel=None):
-        if channel:
-            assert channel in self._channels, "Channel not listened to."
-            self._cur.execute("UNLISTEN %s;" % channel)
-            self._channels.remove(channel)
+    def unsubscribe(self, channels):
+        if channels:
+            assert type(channels) in (tuple, list), "Invalid channels. Must be tuple or list of strings"
+            self._cur.execute("".join(map(lambda c: "UNLISTEN %s;"%c, list(channels))))
+            [self._channels.remove(channel) for channel in channels]
         else:
-            for channel in self._channels:
-                self._cur.execute("UNLISTEN %s;" % channel)
+            self._cur.execute("".join(map(lambda c: "UNLISTEN %s;"%c, list(self._channels))))
             self._channels = []
 
     def __iter__(self):

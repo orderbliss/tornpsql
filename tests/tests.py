@@ -18,6 +18,11 @@ class tornpsqlTests(unittest.TestCase):
         self.db.file(os.path.join(os.path.dirname(__file__), "example.sql"))
         self.assertTrue(self.db.get("SELECT true as t from public.users where name='Mr. Johnson' limit 1;").t)
 
+    def test_file_path(self):
+        "can set search_path with "
+        self.db.path('other').file(os.path.join(os.path.dirname(__file__), "other.sql"))
+        self.assertTrue(self.db.path('other').get("SELECT * from users limit 1;").age, 10)
+
     def test_connection_args(self):
         "test connect with args"
         db = tornpsql.Connection("127.0.0.1", "tornpsql", os.getenv("postgres", None))

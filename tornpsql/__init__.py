@@ -170,7 +170,7 @@ class Connection(object):
     def _execute(self, cursor, query, parameters, kwargs):
         try:
             query = self._set_search_path(query)
-            if self.logging: 
+            if self.logging: # pragma: no cover
                 logging.info(re.sub(r"\n\s*", " ", cursor.mogrify(query, *parameters, **kwargs)))
 
             if kwargs:
