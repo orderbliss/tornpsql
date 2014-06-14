@@ -11,6 +11,7 @@ Tornpsql [![Build Status](https://secure.travis-ci.org/stevepeak/tornpsql.png)](
 - [Query from Files](#query-files)
   - including references
 - [Pubsub](#pubsub)
+- Retrieve notices (`raise notice 'something';`) via `list(db.notices)`
 
 ## Usage
 ```python

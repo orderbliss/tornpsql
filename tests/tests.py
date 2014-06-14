@@ -86,5 +86,6 @@ class tornpsqlTests(unittest.TestCase):
     def test_notices(self):
         "can retreive notices"
         self.db.notices # clear other notices
+        self.db.query("set client_min_messages to NOTICE;")
         self.db.query("insert into other.users (name) values ('New Customer');")
         self.assertListEqual(self.db.notices, ["New user inserted"])
