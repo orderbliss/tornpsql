@@ -79,7 +79,7 @@ class Connection(object):
 
         try:
             psycopg2.extras.register_hstore(self._db, globally=True)
-        except psycopg2.ProgrammingError:
+        except psycopg2.ProgrammingError: # pragma: no cover
             pass
 
     def path(self, search_path):
@@ -88,9 +88,6 @@ class Connection(object):
 
     def adapt(self, value):
         return adapt(value)
-
-    def hstore(self, dict):
-        return ','.join(['"%s"=>"%s"' % (str(k), str(v)) for k, v in dict.items()])
 
     def register_type(self, oids, name, casting):
         """Callback to register data types when reconnect
@@ -181,7 +178,7 @@ class Connection(object):
             else:
                 cursor.execute(query, parameters)
 
-        except psycopg2.OperationalError as e:
+        except psycopg2.OperationalError as e: # pragma: no cover
             logging.error("Error connecting to PostgreSQL on %s, %s", self.host, e)
             self.close()
             raise
@@ -192,7 +189,7 @@ class Connection(object):
         try:
             query = self._set_search_path(query)
             cursor.executemany(query, parameters)
-        except psycopg2.OperationalError as e:
+        except psycopg2.OperationalError as e: # pragma: no cover
             logging.error("Error connecting to PostgreSQL on %s, e", self.host, e)
             self.close()
             raise 
@@ -220,14 +217,12 @@ class Connection(object):
         """pops and returns all notices
         http://initd.org/psycopg/docs/connection.html#connection.notices
         """
-        if self._db:
-            return [self._db.notices.pop()[8:].strip() for x in range(len(self._db.notices))]
-        return []
+        return [self._db.notices.pop()[8:].strip() for x in range(len(self._db.notices))]
 
 class Row(dict):
     """A dict that allows for object-like property access syntax."""
     def __getattr__(self, name):
         try:
             return self[name]
-        except KeyError:
+        except KeyError:  # pragma: no cover
             raise AttributeError(name)

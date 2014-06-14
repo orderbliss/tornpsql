@@ -50,6 +50,10 @@ class tornpsqlTests(unittest.TestCase):
         "only one row can be returned with get"
         self.assertRaisesRegexp(ValueError, "Multiple rows returned", self.db.get, "select * from users")
 
+    def test_no_results(self):
+        "get w/ no results"
+        self.assertEqual(self.db.get("select true from users where name = 'Sir Albert Einstein';"), None)
+
     def test_executemany(self):
         "can execute many"
         self.db.executemany("insert into other.users (name) values (%s);", ["Mr. Smith"], ["Mr. Cramer"])
