@@ -31,9 +31,13 @@ class Connection(object):
         if host_or_url is None:
             host_or_url = os.getenv('TORNPSQL', "127.0.0.1")
         if host_or_url.startswith('postgres://'):
-            args = re.search('postgres://(?P<user>[\w\-]*):?(?P<password>[\w\-]*)@(?P<host>[\w\-\.]+):?(?P<port>\d+)/?(?P<database>[\w\-]+)', host_or_url).groupdict()
-            self.host = args.get('host')
-            self.database = args.get('database')
+            try:
+                args = re.search('postgres://(?P<user>[\w\-]*):?(?P<password>[\w\-]*)@(?P<host>[\w\-\.]+):?(?P<port>\d+)/?(?P<database>[\w\-]+)', host_or_url).groupdict()
+            except:
+                raise ValueError("PostgreSQL url is not a valid format postgres://user:password@host:post/database from %s" % host_or_url)
+            else:
+                self.host = args.get('host')
+                self.database = args.get('database')
         else:
             self.host = host_or_url
             self.database = database
@@ -95,8 +99,7 @@ class Connection(object):
         assert type(name) in (unicode, str)
         assert hasattr(casting, "__call__")
         self._register_types.append((oids, name, casting))
-        if self._db is not None:
-            psycopg2.extensions.register_type(psycopg2.extensions.new_type(oids, name, casting))
+        psycopg2.extensions.register_type(psycopg2.extensions.new_type(oids, name, casting))
 
     def mogrify(self, query, *parameters, **kwargs):
         """From http://initd.org/psycopg/docs/cursor.html?highlight=mogrify#cursor.mogrify
@@ -135,7 +138,7 @@ class Connection(object):
         if not rows:
             return None
         elif len(rows) > 1:
-            raise Exception("Multiple rows returned for Database.get() query")
+            raise ValueError("Multiple rows returned for get() query")
         else:
             return rows[0]
 
@@ -145,19 +148,9 @@ class Connection(object):
         cursor = self._cursor()
         try:
             self._executemany(cursor, query, parameters)
-            return True
-        except Exception:
+        except Exception: # pragma: no cover
             cursor.close()
             raise
-
-    def execute_rowcount(self, query, *parameters, **kwargs):
-        """Executes the given query, returning the rowcount from the query."""
-        cursor = self._cursor()
-        try:
-            self._execute(cursor, query, parameters, kwargs)
-            return cursor.rowcount
-        finally:
-            cursor.close()
 
     def _ensure_connected(self):
         if self._db is None:
@@ -194,11 +187,10 @@ class Connection(object):
             raise
 
     def _executemany(self, cursor, query, parameters):
-        """The function is mostly useful for commands that update the database: any result set returned by the query is discarded."""
+        """The function is mostly useful for commands that update the database: 
+           any result set returned by the query is discarded."""
         try:
             query = self._set_search_path(query)
-            if self.logging:
-                logging.info(re.sub(r"\n\s*", " ", cursor.mogrify(query, parameters)))
             cursor.executemany(query, parameters)
         except psycopg2.OperationalError as e:
             logging.error("Error connecting to PostgreSQL on %s, e", self.host, e)

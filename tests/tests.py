@@ -23,15 +23,37 @@ class tornpsqlTests(unittest.TestCase):
         db = tornpsql.Connection("127.0.0.1", "tornpsql", os.getenv("postgres", None))
         self.assertTrue(db.get("select true as connected").connected)
 
+    def test_connection_via_url(self):
+        "can test connect with args"
+        db = tornpsql.Connection(os.getenv("TORNPSQL"))
+        self.assertTrue(db.get("select true as connected").connected)
+
+    def test_invlid_connection_args(self):
+        "can parse connection url"
+        self.assertRaises(ValueError, tornpsql.Connection, "postgres://user:pass@server:port/database")
+        self.assertRaises(ValueError, tornpsql.Connection, "postgres://server:port/")
+        self.assertRaises(ValueError, tornpsql.Connection, "postgres://user:password@server:invalid/database")
+        self.assertRaises(ValueError, tornpsql.Connection, "postgres://user:password@server/database")
+        self.assertRaises(ValueError, tornpsql.Connection, "postgres://user:password@:5432")
+
     def test_registering_type(self):
-        self.db.register_type((790, ), "MONEY", self._cast_money)
+        "can register custom types"
+        self.db.register_type((790, ), "MONEY", 
+                              lambda s, cur: Decimal(s.replace(",","").replace("$","")) if s is not None else None)
         # PS: never, ever, ever use money, use numeric type.
         self.assertEqual(self.db.get("select '5.99'::money as a;").a, Decimal('5.99'))
+        # re-connect to see if the registration sticks
+        self.db.close()
+        self.assertEqual(self.db.get("select '5.99'::money as a;").a, Decimal('5.99'))
 
-    def _cast_money(self, s, cur):
-        if s is None:
-            return None
-        return Decimal(s.replace(",","").replace("$",""))
+    def test_assert_one_row(self):
+        "only one row can be returned with get"
+        self.assertRaisesRegexp(ValueError, "Multiple rows returned", self.db.get, "select * from users")
+
+    def test_executemany(self):
+        "can execute many"
+        self.db.executemany("insert into other.users (name) values (%s);", ["Mr. Smith"], ["Mr. Cramer"])
+        self.assertEqual(self.db.get("select count(*) as t from other.users where name in ('Mr. Smith', 'Mr. Cramer');").t, 2)
 
     def test_mogrify(self):
         "can mogrify w/ inline args"
