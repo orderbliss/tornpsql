@@ -6,6 +6,7 @@ import psycopg2
 import itertools
 import psycopg2.extras
 from psycopg2.extensions import adapt
+from psycopg2.extras import HstoreAdapter
 
 # http://initd.org/psycopg/docs/module.html#exceptions
 from psycopg2 import Warning
@@ -20,13 +21,14 @@ from psycopg2 import ProgrammingError
 from psycopg2 import NotSupportedError
 
 
-__version__ = VERSION = version = '0.2.1'
+__version__ = VERSION = version = '1.0.0'
 
 from .pubsub import PubSub
 
 
 class Connection(object):
-    def __init__(self, host_or_url=None, database=None, user=None, password=None, port=5432, search_path=None, timezone="+00"):
+    def __init__(self, host_or_url=None, database=None, user=None, password=None, port=5432, 
+                       search_path=None, timezone="+00"):
         self.logging = False
         if host_or_url is None:
             host_or_url = os.getenv('TORNPSQL', "127.0.0.1")
@@ -56,6 +58,12 @@ class Connection(object):
             logging.error("Cannot connect to PostgreSQL on postgresql://%s:<password>@%s/%s", 
                 args['user'], self.host, self.database, exc_info=True)
 
+        psycopg2.extras.register_hstore(self._db, globally=True)
+        psycopg2.extensions.register_adapter(dict, psycopg2.extras.Json)
+
+    def hstore(self, _dict):
+        return HstoreAdapter(_dict)
+
     def __del__(self):
         self.close()
 
@@ -71,16 +79,9 @@ class Connection(object):
         self._db = psycopg2.connect(**self._db_args)
         self._db.autocommit = True
 
-        psycopg2.extensions.register_adapter(dict, psycopg2.extras.Json)
-
         # register custom types
         for _type in self._register_types:
             psycopg2.extensions.register_type(psycopg2.extensions.new_type(*_type))
-
-        try:
-            psycopg2.extras.register_hstore(self._db, globally=True)
-        except psycopg2.ProgrammingError: # pragma: no cover
-            pass
 
     def path(self, search_path):
         self._change_path = search_path
@@ -170,12 +171,12 @@ class Connection(object):
     def _execute(self, cursor, query, parameters, kwargs):
         try:
             query = self._set_search_path(query)
-            if self.logging: # pragma: no cover
-                logging.info(re.sub(r"\n\s*", " ", cursor.mogrify(query, *parameters, **kwargs)))
-
             if kwargs:
-                cursor.execute(query % dict(map(lambda r: (r[0], adapt(r[1])), kwargs.items())))
+                query = query % dict(map(lambda r: (r[0], adapt(r[1])), kwargs.items()))
+                if self.logging: self._log(query)
+                cursor.execute(query)
             else:
+                if self.logging: self._log(cursor.mogrify(query, parameters))
                 cursor.execute(query, parameters)
 
         except psycopg2.OperationalError as e: # pragma: no cover
@@ -183,11 +184,15 @@ class Connection(object):
             self.close()
             raise
 
+    def _log(self, query):    
+        logging.info(re.sub(r"\n\s*", " ", query))
+
     def _executemany(self, cursor, query, parameters):
         """The function is mostly useful for commands that update the database: 
            any result set returned by the query is discarded."""
         try:
             query = self._set_search_path(query)
+            if self.logging: self._log(query)
             cursor.executemany(query, parameters)
         except psycopg2.OperationalError as e: # pragma: no cover
             logging.error("Error connecting to PostgreSQL on %s, e", self.host, e)

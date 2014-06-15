@@ -3,6 +3,7 @@ import unittest
 import tornpsql
 from decimal import Decimal
 
+from psycopg2._json import Json
 from psycopg2.extras import HstoreAdapter
 
 class tornpsqlTests(unittest.TestCase):
@@ -82,7 +83,8 @@ class tornpsqlTests(unittest.TestCase):
     def test_adapting(self):
         "can adapt data types outside query"
         self.assertEqual(self.db.adapt("this").getquoted(), "'this'")
-        self.assertIsInstance(self.db.adapt(dict(value=10)), HstoreAdapter)
+        self.assertIsInstance(self.db.adapt(dict(value=10)), Json)
+        self.assertIsInstance(self.db.hstore(dict(value=10)), HstoreAdapter)
 
     def test_raises_execptions(self):
         "can raise all psycopg2 exceptions"
