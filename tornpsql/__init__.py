@@ -5,6 +5,7 @@ import logging
 import psycopg2
 import itertools
 import psycopg2.extras
+from psycopg2.extras import Json
 from psycopg2.extensions import adapt
 from psycopg2.extras import HstoreAdapter
 
@@ -58,11 +59,17 @@ class Connection(object):
             logging.error("Cannot connect to PostgreSQL on postgresql://%s:<password>@%s/%s", 
                 args['user'], self.host, self.database, exc_info=True)
 
-        psycopg2.extras.register_hstore(self._db, globally=True)
-        psycopg2.extensions.register_adapter(dict, psycopg2.extras.Json)
+        try:
+            psycopg2.extras.register_hstore(self._db, globally=True)
+        except ProgrammingError:
+            pass
+        psycopg2.extensions.register_adapter(dict, Json)
 
     def hstore(self, _dict):
         return HstoreAdapter(_dict)
+
+    def json(self, element):
+        return Json(element)
 
     def __del__(self):
         self.close()
