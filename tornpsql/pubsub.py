@@ -17,7 +17,7 @@ class PubSub(object):
         assert type(channels) in (tuple, list), "Invalid channels. Must be tuple or list of strings"
         self._channels = set(list(self._channels) + list(channels))
 
-    def unsubscribe(self, channels):
+    def unsubscribe(self, channels=None):
         if channels:
             assert type(channels) in (tuple, list), "Invalid channels. Must be tuple or list of strings"
             self._cur.execute("".join(map(lambda c: "UNLISTEN %s;"%c, list(channels))))
