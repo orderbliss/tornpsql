@@ -18,4 +18,6 @@ before_script:
 script:
   - coverage run -m unittest discover -s tests
 after_success:
+  - codecov
   - coveralls
+install: pip install codecov
