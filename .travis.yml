@@ -5,17 +5,15 @@ notifications:
   email: false
 env:
   global:
-    - TORNPSQL=postgres://postgres:@127.0.0.1:5432/tornpsql
-    - TORNUSER=postgres
+    - DATABASE_URL=postgres://postgres:@127.0.0.1:5432/tornpsql
+    - DATABASE_USER=postgres
 services: postgres
 addons:
   postgresql: "9.3"
 before_script:
   - python setup.py install
-  - pip install coveralls
+  - pip install nose rednose nose-cov codecov
   - psql -U postgres -c 'create database tornpsql;'
   - psql tornpsql -f tests/test.sql
-script:
-  - coverage run -m unittest discover -s tests
-after_success:
-  - coveralls
+script: nosetests --rednose --with-cov
+after_success: codecov

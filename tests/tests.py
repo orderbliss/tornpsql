@@ -31,7 +31,7 @@ class tornpsqlTests(unittest.TestCase):
 
     def test_connection_via_url(self):
         "can test connect with args"
-        db = tornpsql.Connection(os.getenv("TORNPSQL"))
+        db = tornpsql.Connection(os.getenv("DATABASE_URL"))
         self.assertTrue(db.get("select true as connected").connected)
 
     def test_invlid_connection_args(self):
@@ -76,7 +76,7 @@ class tornpsqlTests(unittest.TestCase):
                          "select true from user where email='joe@smoe.com';")
     
     def test_connection_from_url(self):
-        "can connect from the os.getenv('TORNPSQL')"
+        "can connect from the os.getenv('DATABASE_URL')"
         db = tornpsql.Connection()
         self.assertTrue(db.get("select true as connected").connected)
 

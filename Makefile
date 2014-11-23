@@ -20,6 +20,7 @@ venv:
 	virtualenv venv
 	. venv/bin/activate; pip install -r requirements.txt
 	. venv/bin/activate; python setup.py install
+	@echo 'export DATABASE_URL="postgres://peak:@127.0.0.1:5432/tornpsql"' >> venv/bin/activate
 
 db:
 	psql tornpsql

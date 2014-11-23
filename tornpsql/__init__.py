@@ -22,7 +22,7 @@ from psycopg2 import ProgrammingError
 from psycopg2 import NotSupportedError
 
 
-__version__ = VERSION = version = '1.0.1'
+__version__ = VERSION = version = '1.0.2'
 
 from .pubsub import PubSub
 
@@ -30,9 +30,9 @@ from .pubsub import PubSub
 class Connection(object):
     def __init__(self, host_or_url=None, database=None, user=None, password=None, port=5432, 
                        search_path=None, timezone="+00"):
-        self.logging = False
+        self.logging = (os.getenv('DEBUG')=='TRUE')
         if host_or_url is None:
-            host_or_url = os.getenv('TORNPSQL', "127.0.0.1")
+            host_or_url = os.getenv('DATABASE_URL', "127.0.0.1")
         if host_or_url.startswith('postgres://'):
             try:
                 args = re.search('postgres://(?P<user>[\w\-]*):?(?P<password>[\w\-]*)@(?P<host>[\w\-\.]+):?(?P<port>\d+)/?(?P<database>[\w\-]+)', host_or_url).groupdict()
@@ -153,6 +153,9 @@ class Connection(object):
         cursor = self._cursor()
         try:
             self._executemany(cursor, query, parameters)
+            if cursor.description:
+                column_names = [column.name for column in cursor.description]
+                return [Row(itertools.izip(column_names, row)) for row in cursor.fetchall()]
         except Exception: # pragma: no cover
             cursor.close()
             raise
