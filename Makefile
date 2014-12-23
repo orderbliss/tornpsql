@@ -7,7 +7,7 @@ tag:
 	git tag -m "" -a v$(shell grep "version = '" ./tornpsql/__init__.py | cut -d"'" -f 2)
 	git push origin v$(shell grep "version = '" ./tornpsql/__init__.py | cut -d"'" -f 2)
 
-upload:
+upload: tag
 	python setup.py sdist upload
 
 test:
