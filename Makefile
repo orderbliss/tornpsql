@@ -24,3 +24,6 @@ venv:
 
 db:
 	psql tornpsql
+
+compare:
+	hub compare $(shell git tag | tail -1)...master
