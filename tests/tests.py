@@ -132,12 +132,14 @@ class TransactionalConnectionTestCase(unittest.TestCase):
             pass
 
     def test_commit(self):
+        "can commit a transaction"
         id = self.db.get("insert into other.users (name) values ('New Transactional Customer 1') returning id;").id
         self.assertEqual(self.db.get('select name from other.users where id=%s', id).name, 'New Transactional Customer 1')
         self.db.commit()
         self.assertEqual(self.db.get('select name from other.users where id=%s', id).name, 'New Transactional Customer 1')
 
     def test_rollback(self):
+        "can rollback a transaction"
         id = self.db.get("insert into other.users (name) values ('New Transactional Customer 2') returning id;").id
         self.assertEqual(self.db.get('select name from other.users where id=%s', id).name, 'New Transactional Customer 2')
         self.db.rollback()
