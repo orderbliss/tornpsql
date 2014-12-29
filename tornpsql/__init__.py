@@ -248,14 +248,14 @@ class TransactionalConnection(_Connection):
                        search_path=None, timezone="+00", isolation_level=None, readonly=None,
                        deferrable=None, **kwargs):
 
+        self.isolation_level = isolation_level
+        self.readonly = readonly
+        self.deferrable = deferrable
+
         super(TransactionalConnection, self).__init__(
             host_or_url=host_or_url, database=database, user=user, password=password,
             port=port, search_path=search_path, timezone=timezone
         )
-
-        self.isolation_level = isolation_level
-        self.readonly = readonly
-        self.deferrable = deferrable
 
     def reconnect(self):
         self._reconnect()
