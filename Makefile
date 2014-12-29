@@ -11,9 +11,10 @@ upload: tag
 	python setup.py sdist upload
 
 test:
-	@psql -c "drop database if exists tornpsql;" 
-	@psql -c "create database tornpsql;"
-	@psql tornpsql -f tests/test.sql
+	@dropdb --if-exists tornpsql
+	@createdb -O peak tornpsql
+	@psql tornpsql -c 'create extension hstore;'
+	@psql -U peak -f tests/test.sql tornpsql
 	. venv/bin/activate; nosetests -v --with-coverage --cover-package=tornpsql --cover-html --cover-html-dir=coverage_html_report
 
 venv:
