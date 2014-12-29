@@ -12,16 +12,16 @@ upload: tag
 
 test:
 	@dropdb --if-exists tornpsql
-	@createdb -O peak tornpsql
+	@createdb tornpsql
 	@psql tornpsql -c 'create extension hstore;'
-	@psql -U peak -f tests/test.sql tornpsql
+	@psql -f tests/test.sql tornpsql
 	. venv/bin/activate; nosetests -v --with-coverage --cover-package=tornpsql --cover-html --cover-html-dir=coverage_html_report
 
 venv:
 	virtualenv venv
 	. venv/bin/activate; pip install -r requirements.txt
 	. venv/bin/activate; python setup.py install
-	@echo 'export DATABASE_URL="postgres://peak:@127.0.0.1:5432/tornpsql"' >> venv/bin/activate
+	@echo "export DATABASE_URL=\"postgres://$(DATABASE_LOGIN)@127.0.0.1:5432/tornpsql\"" >> venv/bin/activate
 
 db:
 	psql tornpsql
