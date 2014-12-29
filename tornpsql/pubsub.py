@@ -5,7 +5,6 @@ import psycopg2.extensions
 class PubSub(object):
     def __init__(self, db):
         self._db = db
-        db.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
         self._cur = db.cursor()
         self._channels = []
 
