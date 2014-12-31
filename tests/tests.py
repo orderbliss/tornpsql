@@ -6,11 +6,11 @@ from decimal import Decimal
 from psycopg2._json import Json
 from psycopg2.extras import HstoreAdapter
 
-class tornpsqlTests(unittest.TestCase):
+class ConnectionTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         try:
-            self.db = tornpsql.Connection()
+            self.db = tornpsql.Connection(database="tornpsql")
         except:
             pass
 
@@ -31,7 +31,7 @@ class tornpsqlTests(unittest.TestCase):
 
     def test_connection_via_url(self):
         "can test connect with args"
-        db = tornpsql.Connection(os.getenv("DATABASE_URL"))
+        db = tornpsql.Connection(os.getenv("ALTERNATE_DATABASE_URL"))
         self.assertTrue(db.get("select true as connected").connected)
 
     def test_invlid_connection_args(self):
@@ -122,3 +122,25 @@ class tornpsqlTests(unittest.TestCase):
         self.db.query("set client_min_messages to NOTICE;")
         self.db.query("insert into other.users (name) values ('New Customer');")
         self.assertListEqual(self.db.notices, ["New user inserted"])
+
+class TransactionalConnectionTestCase(unittest.TestCase):
+    @classmethod
+    def setUpClass(self):
+        try:
+            self.db = tornpsql.TransactionalConnection(database="tornpsql")
+        except:
+            pass
+
+    def test_commit(self):
+        "can commit a transaction"
+        id = self.db.get("insert into other.users (name) values ('New Transactional Customer 1') returning id;").id
+        self.assertEqual(self.db.get('select name from other.users where id=%s', id).name, 'New Transactional Customer 1')
+        self.db.commit()
+        self.assertEqual(self.db.get('select name from other.users where id=%s', id).name, 'New Transactional Customer 1')
+
+    def test_rollback(self):
+        "can rollback a transaction"
+        id = self.db.get("insert into other.users (name) values ('New Transactional Customer 2') returning id;").id
+        self.assertEqual(self.db.get('select name from other.users where id=%s', id).name, 'New Transactional Customer 2')
+        self.db.rollback()
+        self.assertEqual(self.db.get('select name from other.users where id=%s', id), None)

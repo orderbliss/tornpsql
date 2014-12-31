@@ -27,7 +27,7 @@ __version__ = VERSION = version = '1.0.2'
 from .pubsub import PubSub
 
 
-class Connection(object):
+class _Connection(object):
     def __init__(self, host_or_url=None, database=None, user=None, password=None, port=5432, 
                        search_path=None, timezone="+00"):
         self.logging = (os.getenv('DEBUG')=='TRUE')
@@ -80,13 +80,13 @@ class Connection(object):
             self._db.close()
             self._db = None
 
-    def reconnect(self):
+    def _reconnect(self):
         """Closes the existing database connection and re-opens it."""
         self.close()
         self._db = psycopg2.connect(**self._db_args)
-        self._db.autocommit = True
 
-        # register custom types
+    def _reregister_types(self):
+        """Registers existing types for a new connection"""
         for _type in self._register_types:
             psycopg2.extensions.register_type(psycopg2.extensions.new_type(*_type))
 
@@ -236,6 +236,37 @@ class Connection(object):
         http://initd.org/psycopg/docs/connection.html#connection.notices
         """
         return [self._db.notices.pop()[8:].strip() for x in range(len(self._db.notices))]
+
+class Connection(_Connection):
+    def reconnect(self):
+        self._reconnect()
+        self._db.autocommit = True
+        self._reregister_types()
+
+class TransactionalConnection(_Connection):
+    def __init__(self, host_or_url=None, database=None, user=None, password=None, port=5432, 
+                       search_path=None, timezone="+00", isolation_level=None, readonly=None,
+                       deferrable=None, **kwargs):
+
+        self.isolation_level = isolation_level
+        self.readonly = readonly
+        self.deferrable = deferrable
+
+        super(TransactionalConnection, self).__init__(
+            host_or_url=host_or_url, database=database, user=user, password=password,
+            port=port, search_path=search_path, timezone=timezone
+        )
+
+    def reconnect(self):
+        self._reconnect()
+        self._db.set_session(isolation_level=self.isolation_level, readonly=self.readonly, deferrable=self.deferrable)
+        self._reregister_types()
+
+    def commit(self):
+        self._db.commit()
+
+    def rollback(self):
+        self._db.rollback()
 
 class Row(dict):
     """A dict that allows for object-like property access syntax."""
