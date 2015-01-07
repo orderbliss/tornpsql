@@ -21,11 +21,14 @@ from psycopg2 import InternalError
 from psycopg2 import ProgrammingError
 from psycopg2 import NotSupportedError
 
-
 __version__ = VERSION = version = '1.0.2'
 
 from .pubsub import PubSub
 
+try:
+    basestring
+except NameError:
+    basestring = str
 
 class _Connection(object):
     def __init__(self, host_or_url=None, database=None, user=None, password=None, port=5432, 
@@ -101,7 +104,7 @@ class _Connection(object):
         """Callback to register data types when reconnect
         """
         assert type(oids) is tuple
-        assert type(name) in (unicode, str)
+        assert isinstance(name, basestring)
         assert hasattr(casting, "__call__")
         self._register_types.append((oids, name, casting))
         psycopg2.extensions.register_type(psycopg2.extensions.new_type(oids, name, casting))
@@ -115,7 +118,7 @@ class _Connection(object):
         cursor = self._cursor()
         try:
             if kwargs:
-                return cursor.mogrify(query % dict(map(lambda r: (r[0], adapt(r[1])), kwargs.items())))
+                return cursor.mogrify(query % dict([(r[0], adapt(r[1])) for r in list(kwargs.items())]))
             return cursor.mogrify(query, parameters)
         except: # pragma: no cover
             cursor.close()
@@ -128,7 +131,7 @@ class _Connection(object):
             self._execute(cursor, query, parameters or None, kwargs)    
             if cursor.description:
                 column_names = [column.name for column in cursor.description]
-                return [Row(itertools.izip(column_names, row)) for row in cursor.fetchall()]
+                return [Row(zip(column_names, row)) for row in cursor.fetchall()]
         except:
             cursor.close()
             raise
@@ -155,7 +158,7 @@ class _Connection(object):
             self._executemany(cursor, query, parameters)
             if cursor.description:
                 column_names = [column.name for column in cursor.description]
-                return [Row(itertools.izip(column_names, row)) for row in cursor.fetchall()]
+                return [Row(zip(column_names, row)) for row in cursor.fetchall()]
         except Exception: # pragma: no cover
             cursor.close()
             raise
@@ -182,7 +185,7 @@ class _Connection(object):
         try:
             query = self._set_search_path(query)
             if kwargs:
-                query = query % dict(map(lambda r: (r[0], adapt(r[1])), kwargs.items()))
+                query = query % dict([(r[0], adapt(r[1])) for r in list(kwargs.items())])
                 self._log(query)
                 cursor.execute(query)
             else:

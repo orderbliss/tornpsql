@@ -68,12 +68,12 @@ class ConnectionTestCase(unittest.TestCase):
     def test_mogrify(self):
         "can mogrify w/ inline args"
         self.assertEqual(self.db.mogrify("select true from user where email=%s;", "joe@smoe.com"),
-                         "select true from user where email='joe@smoe.com';")
+                         b"select true from user where email='joe@smoe.com';")
 
     def test_mogrify_dict(self):
         "can mogrify w/ dict args"
         self.assertEqual(self.db.mogrify("select true from user where email=%(email)s;", email="joe@smoe.com"),
-                         "select true from user where email='joe@smoe.com';")
+                         b"select true from user where email='joe@smoe.com';")
     
     def test_connection_from_url(self):
         "can connect from the os.getenv('DATABASE_URL')"
@@ -82,7 +82,7 @@ class ConnectionTestCase(unittest.TestCase):
 
     def test_adapting(self):
         "can adapt data types outside query"
-        self.assertEqual(self.db.adapt("this").getquoted(), "'this'")
+        self.assertEqual(self.db.adapt("this").getquoted(), b"'this'")
         self.assertIsInstance(self.db.adapt(dict(value=10)), Json)
         self.assertIsInstance(self.db.hstore(dict(value=10)), HstoreAdapter)
 
@@ -92,7 +92,7 @@ class ConnectionTestCase(unittest.TestCase):
 
     def test_json(self):
         "can providing dict as an argument will adapt to json datatype"
-        self.assertDictEqual(self.db.get("select %s::json as data;", dict(data="something")).data, {u'data': u'something'})
+        self.assertDictEqual(self.db.get("select %s::json as data;", dict(data="something")).data, {'data': 'something'})
 
     def test_hstore(self):
         "can parse hstore datatype as dict (kinda)"
