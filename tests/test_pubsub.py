@@ -11,7 +11,7 @@ class PubSubThread(threading.Thread):
         self.start()
 
     def run(self):
-        db = tornpsql.Connection()
+        db = tornpsql.Connection(database="tornpsql")
         pubsub = db.pubsub()
         pubsub.subscribe(("example", "other", "exit", "unsub"))
         for notify in pubsub.listen():
@@ -28,7 +28,7 @@ class tornpsqlTests(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         PubSubThread()
-        self.db = tornpsql.Connection()
+        self.db = tornpsql.Connection(database="tornpsql")
 
     @classmethod
     def tearDownClass(self):

@@ -10,7 +10,7 @@ class tornpsqlTests(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         try:
-            self.db = tornpsql.Connection()
+            self.db = tornpsql.Connection(database="tornpsql")
         except:
             pass
 
@@ -31,7 +31,7 @@ class tornpsqlTests(unittest.TestCase):
 
     def test_connection_via_url(self):
         "can test connect with args"
-        db = tornpsql.Connection(os.getenv("DATABASE_URL"))
+        db = tornpsql.Connection(os.getenv("ALTERNATE_DATABASE_URL"))
         self.assertTrue(db.get("select true as connected").connected)
 
     def test_invlid_connection_args(self):
