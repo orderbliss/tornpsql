@@ -226,7 +226,7 @@ class Connection(object):
                 self._change_path = None
             elif self._search_path:
                 sql = ("set search_path = %s;" % self._search_path) + sql
-            return cursor.execute(sql)
+            map(cursor.execute, sql.split("\n-- EOF\n"))
         else:
             return sql
 
