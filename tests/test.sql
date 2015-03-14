@@ -18,7 +18,7 @@ create table public.users(
   flags hstore
 );
 
-insert into public.users (name, email, balance, flags) values 
+insert into public.users (name, email, balance, flags) values
     ('Elaina Dach', 'hane.ebba@wolf.com', 7.10, '"extra_feature"=>"true"'::hstore),
     ('Lucas Jaskolski', 'chad.cummings@hotmail.com', 46.35, null),
     ('Ms. Agustin Walter', 'johnnie.jast@hotmail.com', 81.0, null),

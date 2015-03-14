@@ -20,7 +20,7 @@ class PubSubThread(threading.Thread):
                 break
             elif notify.channel == 'unsub':
                 pubsub.unsubscribe(("example", ))
-            else:  
+            else:
                 db.query("insert into notices (channel, payload) values (%s, %s);", notify.channel, notify.payload)
 
 
@@ -42,7 +42,7 @@ class tornpsqlTests(unittest.TestCase):
         self.db.execute("select pg_notify('example', 'Hello world!');")
         time.sleep(.1)
         self.assertListEqual(self.db.query("SELECT * from notices"), [{"id": 1, "channel": "example", "payload": "Hello world!"}])
-        
+
         self.db.execute("select pg_notify('other', 'Hello other world...?');")
         time.sleep(.1)
         self.assertItemsEqual(self.db.query("SELECT * from notices"), [{"id": 1, "channel": "example", "payload": "Hello world!"},

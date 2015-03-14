@@ -44,7 +44,7 @@ class tornpsqlTests(unittest.TestCase):
 
     def test_registering_type(self):
         "can register custom types"
-        self.db.register_type((790, ), "MONEY", 
+        self.db.register_type((790, ), "MONEY",
                               lambda s, cur: Decimal(s.replace(",","").replace("$","")) if s is not None else None)
         # PS: never, ever, ever use money, use numeric type.
         self.assertEqual(self.db.get("select '5.99'::money as a;").a, Decimal('5.99'))
@@ -74,7 +74,7 @@ class tornpsqlTests(unittest.TestCase):
         "can mogrify w/ dict args"
         self.assertEqual(self.db.mogrify("select true from user where email=%(email)s;", email="joe@smoe.com"),
                          "select true from user where email='joe@smoe.com';")
-    
+
     def test_connection_from_url(self):
         "can connect from the os.getenv('DATABASE_URL')"
         db = tornpsql.Connection()

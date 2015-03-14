@@ -22,13 +22,13 @@ from psycopg2 import ProgrammingError
 from psycopg2 import NotSupportedError
 
 
-__version__ = VERSION = version = '1.0.2'
+__version__ = VERSION = version = '1.0.3'
 
 from .pubsub import PubSub
 
 
 class Connection(object):
-    def __init__(self, host_or_url=None, database=None, user=None, password=None, port=5432, 
+    def __init__(self, host_or_url=None, database=None, user=None, password=None, port=5432,
                        search_path=None, timezone="+00"):
         self.logging = (os.getenv('DEBUG')=='TRUE')
         if host_or_url is None:
@@ -44,7 +44,7 @@ class Connection(object):
         else:
             self.host = host_or_url
             self.database = database
-            args = dict(host=host_or_url, database=database, port=int(port), 
+            args = dict(host=host_or_url, database=database, port=int(port),
                         user=user, password=password)
 
         self.timezone = timezone
@@ -56,7 +56,7 @@ class Connection(object):
         try:
             self.reconnect()
         except Exception: # pragma: no cover
-            logging.error("Cannot connect to PostgreSQL on postgresql://%s:<password>@%s/%s", 
+            logging.error("Cannot connect to PostgreSQL on postgresql://%s:<password>@%s/%s",
                 args['user'], self.host, self.database, exc_info=True)
 
         try:
@@ -109,7 +109,7 @@ class Connection(object):
     def mogrify(self, query, *parameters, **kwargs):
         """From http://initd.org/psycopg/docs/cursor.html?highlight=mogrify#cursor.mogrify
         Return a query string after arguments binding.
-        The string returned is exactly the one that would be sent to the database running 
+        The string returned is exactly the one that would be sent to the database running
         the execute() method or similar.
         """
         cursor = self._cursor()
@@ -125,7 +125,7 @@ class Connection(object):
         """Returns a row list for the given query and parameters."""
         cursor = self._cursor()
         try:
-            self._execute(cursor, query, parameters or None, kwargs)    
+            self._execute(cursor, query, parameters or None, kwargs)
             if cursor.description:
                 column_names = [column.name for column in cursor.description]
                 return [Row(itertools.izip(column_names, row)) for row in cursor.fetchall()]
@@ -194,23 +194,23 @@ class Connection(object):
             self.close()
             raise
 
-    def _log(self, query, params=None):    
-        if self.logging: 
+    def _log(self, query, params=None):
+        if self.logging:
             if params:
                 query = self.mogrify(query, *params)
             logging.info(re.sub(r"\n\s*", " ", query))
 
     def _executemany(self, cursor, query, parameters):
-        """The function is mostly useful for commands that update the database: 
+        """The function is mostly useful for commands that update the database:
            any result set returned by the query is discarded."""
         try:
-            query = self._set_search_path(query)    
+            query = self._set_search_path(query)
             self._log(query)
             cursor.executemany(query, parameters)
         except OperationalError as e: # pragma: no cover
             logging.error("Error connecting to PostgreSQL on %s, e", self.host, e)
             self.close()
-            raise 
+            raise
 
     def pubsub(self):
         return PubSub(self._db)
