@@ -21,6 +21,14 @@ from psycopg2 import InternalError
 from psycopg2 import ProgrammingError
 from psycopg2 import NotSupportedError
 
+try:
+    from pygments import highlight
+    from pygments.lexers import SqlLexer
+    from pygments.formatters import TerminalFormatter
+    from functools import partial
+    highlight = partial(highlight, lexer=SqlLexer(), formatter=TerminalFormatter())
+except:
+    highlight = lambda a: a
 
 __version__ = VERSION = version = '1.0.3'
 
@@ -198,7 +206,7 @@ class Connection(object):
         if self.logging:
             if params:
                 query = self.mogrify(query, *params)
-            logging.info(re.sub(r"\n\s*", " ", query))
+            logging.info(highlight(code=re.sub(r"\n\s*", " ", query)))
 
     def _executemany(self, cursor, query, parameters):
         """The function is mostly useful for commands that update the database:
