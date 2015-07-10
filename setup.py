@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='tornpsql',
-      version='1.0.2',
+      version='1.1.0',
       description="PostgreSQL handler for Tornado Web",
       long_description="",
       classifiers=["Development Status :: 5 - Production/Stable",
@@ -17,5 +17,5 @@ setup(name='tornpsql',
       packages=['tornpsql'],
       include_package_data=True,
       zip_safe=True,
-      install_requires=["psycopg2==2.5.2"],
+      install_requires=["psycopg2>=2.5.2"],
       entry_points="")
