@@ -37,8 +37,8 @@ from .pubsub import PubSub
 
 class Connection(object):
     def __init__(self, host_or_url=None, database=None, user=None, password=None, port=5432,
-                       search_path=None, timezone="+00"):
-        self.logging = (os.getenv('DEBUG')=='TRUE')
+                 search_path=None, timezone="+00"):
+        self.logging = (os.getenv('DEBUG') == 'TRUE')
         if host_or_url is None:
             host_or_url = os.getenv('DATABASE_URL', "127.0.0.1")
         if host_or_url.startswith('postgres://'):
@@ -63,9 +63,9 @@ class Connection(object):
         self._change_path = None
         try:
             self.reconnect()
-        except Exception: # pragma: no cover
+        except Exception:  # pragma: no cover
             logging.error("Cannot connect to PostgreSQL on postgresql://%s:<password>@%s/%s",
-                args['user'], self.host, self.database, exc_info=True)
+                          args['user'], self.host, self.database, exc_info=True)
 
         try:
             psycopg2.extras.register_hstore(self._db, globally=True)
@@ -125,7 +125,7 @@ class Connection(object):
             if kwargs:
                 return cursor.mogrify(query % dict(map(lambda r: (r[0], adapt(r[1])), kwargs.items())))
             return cursor.mogrify(query, parameters)
-        except: # pragma: no cover
+        except:  # pragma: no cover
             cursor.close()
             raise
 
@@ -164,7 +164,7 @@ class Connection(object):
             if cursor.description:
                 column_names = [column.name for column in cursor.description]
                 return [Row(itertools.izip(column_names, row)) for row in cursor.fetchall()]
-        except Exception: # pragma: no cover
+        except Exception:  # pragma: no cover
             cursor.close()
             raise
 
@@ -197,7 +197,7 @@ class Connection(object):
                 self._log(query, parameters)
                 cursor.execute(query, parameters)
 
-        except OperationalError as e: # pragma: no cover
+        except OperationalError as e:  # pragma: no cover
             logging.error("Error connecting to PostgreSQL on %s, %s", self.host, e)
             self.close()
             raise
@@ -215,7 +215,7 @@ class Connection(object):
             query = self._set_search_path(query)
             self._log(query)
             cursor.executemany(query, parameters)
-        except OperationalError as e: # pragma: no cover
+        except OperationalError as e:  # pragma: no cover
             logging.error("Error connecting to PostgreSQL on %s, e", self.host, e)
             self.close()
             raise
@@ -244,6 +244,7 @@ class Connection(object):
         http://initd.org/psycopg/docs/connection.html#connection.notices
         """
         return [self._db.notices.pop()[8:].strip() for x in range(len(self._db.notices))]
+
 
 class Row(dict):
     """A dict that allows for object-like property access syntax."""
