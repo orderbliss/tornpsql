@@ -26,13 +26,14 @@ __version__ = VERSION = version = '2.0.0'
 
 from .pubsub import PubSub
 
-_RE_PSQL_URL = re.compile(r'^postgres://(?P<user>[^:]*):?(?P<password>[^@]*)@(?P<host>[^:]+):?(?P<port>\d+)/?(?P<database>.+)$')
+_RE_PSQL_URL = re.compile(r'^postgres://(?P<user>[^:]*):?(?P<password>[^@]*)@(?P<host>[^:]+):?(?P<port>\d+)/?(?P<database>[^#]+)(?P<search_path>#.+)?(?P<timezone>@.+)?$')
 
 
 class _Connection(object):
-                       search_path=None, timezone="+00"):
-        self.logging = (os.getenv('DEBUG')=='TRUE')
+    def __init__(self, host_or_url=None, database=None, user=None, password=None, port=5432,
+                 search_path=None, timezone=None):
         self._logging = (os.getenv('DEBUG') == 'TRUE' or os.getenv('LOGLVL') == 'DEBUG' or os.getenv('PG_LOG') == 'TRUE')
+
         if host_or_url is None:
             host_or_url = os.getenv('DATABASE_URL', '127.0.0.1')
         if host_or_url.startswith('postgres://'):
@@ -43,17 +44,19 @@ class _Connection(object):
             else:
                 self.host = args.get('host')
                 self.database = args.get('database')
+                self._search_path = search_path or args.pop('search_path', None)
+                self._timezone = timezone or args.pop('timezone', None)
         else:
+            self._search_path = search_path
+            self._timezone = timezone
             self.host = host_or_url
             self.database = database
             args = dict(host=host_or_url, database=database, port=int(port),
                         user=user, password=password)
 
-        self.timezone = timezone
         self._db = None
         self._db_args = args
         self._register_types = []
-        self._search_path = search_path or "public"
         self._change_path = None
         try:
             self.reconnect()
@@ -87,16 +90,19 @@ class _Connection(object):
         self.close()
         self._db = psycopg2.connect(**self._db_args)
 
+        if self._search_path:
+            self.execute('set search_path=%s;' % self._search_path)
+
+        if self._timezone:
+            self.execute("set timezone='%s';" % self._timezone)
+
     def _reregister_types(self):
         """Registers existing types for a new connection"""
         for _type in self._register_types:
             psycopg2.extensions.register_type(psycopg2.extensions.new_type(*_type))
 
-    def path(self, search_path):
-        self._change_path = search_path
-        return self
-
     def adapt(self, value):
+        """Adapt any value into SQL safe string"""
         return adapt(value)
 
     def register_type(self, oids, name, casting):
@@ -127,7 +133,7 @@ class _Connection(object):
         """Returns a row list for the given query and parameters."""
         cursor = self._cursor()
         try:
-            self._execute(cursor, query, parameters or None, kwargs)
+            self._execute(cursor, query, parameters, kwargs)
             if cursor.description:
                 column_names = [column.name for column in cursor.description]
                 return [Row(itertools.izip(column_names, row)) for row in cursor.fetchall()]
@@ -175,26 +181,13 @@ class _Connection(object):
         self._ensure_connected()
         return self._db.cursor()
 
-    def _set_search_path(self, query):
-        if self._change_path and not re.search(r'^set search_path', query, re.I):
-            query = ("set search_path = %s;" % self._change_path) + query
-            self._change_path = None
-        elif self._search_path and not re.search(r'^set search_path', query, re.I):
-            query = ("set search_path = %s;" % self._search_path) + query
-        if self.timezone:
-            query = ("set timezone = '%s';" % self.timezone) + query
-        return query
-
     def _execute(self, cursor, query, parameters, kwargs):
         try:
-            query = self._set_search_path(query)
             if kwargs:
                 query = query % dict(map(lambda r: (r[0], adapt(r[1])), kwargs.items()))
-                self._log(query)
-                cursor.execute(query)
-            else:
-                self._log(query, parameters)
-                cursor.execute(query, parameters)
+
+            self._log(query, parameters)
+            cursor.execute(query, parameters)
 
         except OperationalError as e:  # pragma: no cover
             logging.error("Error connecting to PostgreSQL on %s, %s", self.host, e)
@@ -211,7 +204,6 @@ class _Connection(object):
         """The function is mostly useful for commands that update the database:
            any result set returned by the query is discarded."""
         try:
-            query = self._set_search_path(query)
             self._log(query)
             cursor.executemany(query, parameters)
         except OperationalError as e:  # pragma: no cover
@@ -228,11 +220,6 @@ class _Connection(object):
             sql = re.sub(r'\\ir\s(.*)', lambda m: self.file(os.path.join(base, m.groups()[0]), False), r.read())
         if _execute:
             cursor = self._cursor()
-            if self._change_path:
-                sql = ("set search_path = %s;" % self._change_path) + sql
-                self._change_path = None
-            elif self._search_path:
-                sql = ("set search_path = %s;" % self._search_path) + sql
             return cursor.execute(sql)
         else:
             return sql
@@ -253,16 +240,18 @@ class Connection(_Connection):
 
 
 class TransactionalConnection(_Connection):
-                       search_path=None, timezone="+00", isolation_level=None, readonly=None,
-                       deferrable=None, **kwargs):
+    def __init__(self, host_or_url=None, database=None, user=None, password=None, port=5432,
+                 search_path=None, timezone=None,
+                 isolation_level=None, readonly=None,
+                 deferrable=None):
 
         self.isolation_level = isolation_level
         self.readonly = readonly
         self.deferrable = deferrable
 
         super(TransactionalConnection, self).__init__(
-            host_or_url=host_or_url, database=database, user=user, password=password,
-            port=port, search_path=search_path, timezone=timezone
+            host_or_url=host_or_url, database=database, user=user, password=password, port=port,
+            search_path=search_path, timezone=timezone
         )
 
     def reconnect(self):
