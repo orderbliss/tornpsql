@@ -34,16 +34,18 @@ __version__ = VERSION = version = '1.1.1'
 
 from .pubsub import PubSub
 
+psql_url = re.compile(r'postgres://(?P<user>[^:]*):?(?P<password>[^@]*)@(?P<host>[^:]+):?(?P<port>\d+)/?(?P<database>.+)')
+
 
 class Connection(object):
     def __init__(self, host_or_url=None, database=None, user=None, password=None, port=5432,
-                 search_path=None, timezone="+00"):
+                 search_path=None, timezone=None):
         self.logging = (os.getenv('DEBUG') == 'TRUE')
         if host_or_url is None:
-            host_or_url = os.getenv('DATABASE_URL', "127.0.0.1")
+            host_or_url = os.getenv('DATABASE_URL', '127.0.0.1')
         if host_or_url.startswith('postgres://'):
             try:
-                args = re.search('postgres://(?P<user>[\w\-]*):?(?P<password>[\w\-]*)@(?P<host>[\w\-\.]+):?(?P<port>\d+)/?(?P<database>[\w\-]+)', host_or_url).groupdict()
+                args = psql_url.search(host_or_url).groupdict()
             except:
                 raise ValueError("PostgreSQL url is not a valid format postgres://user:password@host:post/database from %s" % host_or_url)
             else:
@@ -59,7 +61,7 @@ class Connection(object):
         self._db = None
         self._db_args = args
         self._register_types = []
-        self._search_path = search_path or "public"
+        self._search_path = search_path
         self._change_path = None
         try:
             self.reconnect()
@@ -98,10 +100,6 @@ class Connection(object):
         for _type in self._register_types:
             psycopg2.extensions.register_type(psycopg2.extensions.new_type(*_type))
 
-    def path(self, search_path):
-        self._change_path = search_path
-        return self
-
     def adapt(self, value):
         return adapt(value)
 
@@ -133,7 +131,7 @@ class Connection(object):
         """Returns a row list for the given query and parameters."""
         cursor = self._cursor()
         try:
-            self._execute(cursor, query, parameters or None, kwargs)
+            self._execute(cursor, query, parameters or None, kwargs.pop('path'))
             if cursor.description:
                 column_names = [column.name for column in cursor.description]
                 return [Row(itertools.izip(column_names, row)) for row in cursor.fetchall()]
@@ -155,12 +153,12 @@ class Connection(object):
         else:
             return rows[0]
 
-    def executemany(self, query, *parameters):
+    def executemany(self, query, *parameters, **kwargs):
         """Executes the given query against all the given param sequences.
         """
         cursor = self._cursor()
         try:
-            self._executemany(cursor, query, parameters)
+            self._executemany(cursor, query, parameters, kwargs.get('path', None))
             if cursor.description:
                 column_names = [column.name for column in cursor.description]
                 return [Row(itertools.izip(column_names, row)) for row in cursor.fetchall()]
@@ -176,19 +174,14 @@ class Connection(object):
         self._ensure_connected()
         return self._db.cursor()
 
-    def _set_search_path(self, query):
-        if self._change_path and not re.search(r'^set search_path', query, re.I):
-            query = ("set search_path = %s;" % self._change_path) + query
-            self._change_path = None
-        elif self._search_path and not re.search(r'^set search_path', query, re.I):
-            query = ("set search_path = %s;" % self._search_path) + query
-        if self.timezone:
-            query = ("set timezone = '%s';" % self.timezone) + query
-        return query
+    def _set_search_path(self, query, path):
+        default_path = (('set search_path=' + self._default_path + ';') if self._default_path else '')
+        return 'set search_path=' + path + ';' + query + default_path
 
-    def _execute(self, cursor, query, parameters, kwargs):
+    def _execute(self, cursor, query, parameters, kwargs, path):
         try:
-            query = self._set_search_path(query)
+            if path:
+                query = self._set_search_path(query, path)
             if kwargs:
                 query = query % dict(map(lambda r: (r[0], adapt(r[1])), kwargs.items()))
                 self._log(query)
