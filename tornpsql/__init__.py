@@ -135,9 +135,14 @@ class _Connection(object):
             cursor.close()
             raise
 
-    def execute(self, query, *parameters):
-        """Alias for query"""
-        return self.query(query, *parameters)
+    def execute(self, query, *parameters, **kwargs):
+        """Same as query, but do not process results. Always returns `None`."""
+        cursor = self._cursor()
+        try:
+            self._execute(cursor, query, parameters, kwargs)
+        except:
+            cursor.close()
+            raise
 
     def get(self, query, *parameters, **kwargs):
         """Returns the first row returned for the given query."""
