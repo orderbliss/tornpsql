@@ -30,7 +30,7 @@ try:
 except:
     highlight = lambda a: a
 
-__version__ = VERSION = version = '1.1.0'
+__version__ = VERSION = version = '1.1.1'
 
 from .pubsub import PubSub
 
