@@ -1,6 +1,3 @@
-open:
-	subl --project ./tornpsql.sublime-project
-
 deploy: tag upload
 
 tag:
@@ -15,7 +12,7 @@ test:
 	@createdb tornpsql
 	@psql tornpsql -c 'create extension hstore;'
 	@psql -f tests/test.sql tornpsql
-	. venv/bin/activate; nosetests -v --with-coverage --cover-package=tornpsql --cover-html --cover-html-dir=coverage_html_report
+	. venv/bin/activate; nosetests -v --with-coverage
 
 venv:
 	virtualenv venv

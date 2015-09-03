@@ -9,7 +9,6 @@ doc/build/
 *.sublime*
 *.pyc
 .DS_Store
- 
 # Packages
 *.egg
 *.egg-info
