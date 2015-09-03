@@ -22,7 +22,7 @@ from psycopg2 import ProgrammingError
 from psycopg2 import NotSupportedError
 
 
-__version__ = VERSION = version = '1.0.2'
+__version__ = VERSION = version = '2.0.0'
 
 from .pubsub import PubSub
 
