@@ -4,10 +4,8 @@ sudo: false
 
 python:
   - 2.7
-  - pypy
   - 3.3
   - 3.4
-  - pypy3
 
 env:
   global:
