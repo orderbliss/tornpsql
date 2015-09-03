@@ -32,6 +32,7 @@ _RE_PSQL_URL = re.compile(r'^postgres://(?P<user>[^:]*):?(?P<password>[^@]*)@(?P
 class _Connection(object):
                        search_path=None, timezone="+00"):
         self.logging = (os.getenv('DEBUG')=='TRUE')
+        self._logging = (os.getenv('DEBUG') == 'TRUE' or os.getenv('LOGLVL') == 'DEBUG' or os.getenv('PG_LOG') == 'TRUE')
         if host_or_url is None:
             host_or_url = os.getenv('DATABASE_URL', '127.0.0.1')
         if host_or_url.startswith('postgres://'):
@@ -196,7 +197,7 @@ class _Connection(object):
             raise
 
     def _log(self, query, params=None):
-        if self.logging:
+        if self._logging:
             if params:
                 query = self.mogrify(query, *params)
             logging.info(re.sub(r"\n\s*", " ", query))
