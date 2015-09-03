@@ -26,6 +26,8 @@ __version__ = VERSION = version = '1.0.2'
 
 from .pubsub import PubSub
 
+_RE_PSQL_URL = re.compile(r'^postgres://(?P<user>[^:]*):?(?P<password>[^@]*)@(?P<host>[^:]+):?(?P<port>\d+)/?(?P<database>.+)$')
+
 
 class _Connection(object):
                        search_path=None, timezone="+00"):
@@ -34,7 +36,7 @@ class _Connection(object):
             host_or_url = os.getenv('DATABASE_URL', '127.0.0.1')
         if host_or_url.startswith('postgres://'):
             try:
-                args = re.search('postgres://(?P<user>[\w\-]*):?(?P<password>[\w\-]*)@(?P<host>[\w\-\.]+):?(?P<port>\d+)/?(?P<database>[\w\-]+)', host_or_url).groupdict()
+                args = _RE_PSQL_URL.match(host_or_url).groupdict()
             except:
                 raise ValueError("PostgreSQL url is not a valid format postgres://user:password@host:post/database from %s" % host_or_url)
             else:
