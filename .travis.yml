@@ -21,7 +21,7 @@ addons:
 
 before_script:
   - python setup.py install
-  - pip install nose rednose nose-cov codecov
+  - pip install -r tests/requirements.txt
   - psql -U postgres -c 'create database tornpsql;'
   - psql tornpsql -f tests/test.sql
 

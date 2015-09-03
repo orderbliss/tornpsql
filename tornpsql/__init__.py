@@ -3,7 +3,6 @@ import re
 import os
 import logging
 import psycopg2
-import itertools
 import psycopg2.extras
 from psycopg2.extras import Json
 from psycopg2.extensions import adapt
@@ -20,6 +19,11 @@ from psycopg2 import IntegrityError
 from psycopg2 import InternalError
 from psycopg2 import ProgrammingError
 from psycopg2 import NotSupportedError
+
+try:
+    unicode
+except:
+    unicode = str
 
 
 __version__ = VERSION = version = '2.0.0'
@@ -136,7 +140,7 @@ class _Connection(object):
             self._execute(cursor, query, parameters, kwargs)
             if cursor.description:
                 column_names = [column.name for column in cursor.description]
-                return [Row(itertools.izip(column_names, row)) for row in cursor.fetchall()]
+                return [Row(zip(column_names, row)) for row in cursor.fetchall()]
         except:
             cursor.close()
             raise
@@ -168,7 +172,7 @@ class _Connection(object):
             self._executemany(cursor, query, parameters)
             if cursor.description:
                 column_names = [column.name for column in cursor.description]
-                return [Row(itertools.izip(column_names, row)) for row in cursor.fetchall()]
+                return [Row(zip(column_names, row)) for row in cursor.fetchall()]
         except Exception:  # pragma: no cover
             cursor.close()
             raise

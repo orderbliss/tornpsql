@@ -58,17 +58,18 @@ class ConnectionTestCase(unittest.TestCase):
 
     def test_executemany(self):
         "can execute many"
+        self.db.execute("truncate other.users;")
         self.db.executemany("insert into other.users (name) values (%s);", ["Mr. Smith"], ["Mr. Cramer"])
         self.assertEqual(self.db.get("select count(*) as t from other.users where name in ('Mr. Smith', 'Mr. Cramer');").t, 2)
 
     def test_mogrify(self):
         "can mogrify w/ inline args"
-        self.assertEqual(self.db.mogrify("select true from user where email=%s;", "joe@smoe.com"),
+        self.assertEqual(self.db.mogrify("select true from user where email=%s;", "joe@smoe.com").decode('utf-8'),
                          "select true from user where email='joe@smoe.com';")
 
     def test_mogrify_dict(self):
         "can mogrify w/ dict args"
-        self.assertEqual(self.db.mogrify("select true from user where email=%(email)s;", email="joe@smoe.com"),
+        self.assertEqual(self.db.mogrify("select true from user where email=%(email)s;", email="joe@smoe.com").decode('utf-8'),
                          "select true from user where email='joe@smoe.com';")
 
     def test_connection_from_url(self):
@@ -78,7 +79,7 @@ class ConnectionTestCase(unittest.TestCase):
 
     def test_adapting(self):
         "can adapt data types outside query"
-        self.assertEqual(self.db.adapt("this").getquoted(), "'this'")
+        self.assertEqual(self.db.adapt("this").getquoted().decode('utf-8'), "'this'")
         self.assertIsInstance(self.db.adapt(dict(value=10)), Json)
         self.assertIsInstance(self.db.hstore(dict(value=10)), HstoreAdapter)
 
