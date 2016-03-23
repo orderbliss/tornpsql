@@ -3,7 +3,6 @@ import re
 import os
 import logging
 import psycopg2
-import itertools
 import psycopg2.extras
 from psycopg2.extras import Json
 from psycopg2.extensions import adapt
@@ -22,51 +21,52 @@ from psycopg2 import ProgrammingError
 from psycopg2 import NotSupportedError
 
 try:
-    from pygments import highlight
-    from pygments.lexers import SqlLexer
-    from pygments.formatters import TerminalFormatter
-    from functools import partial
-    highlight = partial(highlight, lexer=SqlLexer(), formatter=TerminalFormatter())
+    unicode
 except:
-    highlight = lambda a: a
+    unicode = str
 
-__version__ = VERSION = version = '1.1.1'
+
+__version__ = VERSION = version = '2.0.0'
 
 from .pubsub import PubSub
 
-psql_url = re.compile(r'postgres://(?P<user>[^:]*):?(?P<password>[^@]*)@(?P<host>[^:]+):?(?P<port>\d+)/?(?P<database>.+)')
+_RE_WS = re.compile(r'\n\s*')
+_RE_PSQL_URL = re.compile(r'^postgres://(?P<user>[^:]*):?(?P<password>[^@]*)@(?P<host>[^:]+):?(?P<port>\d+)/?(?P<database>[^#]+)(?P<search_path>#.+)?(?P<timezone>@.+)?$')
 
 
-class Connection(object):
+class _Connection(object):
     def __init__(self, host_or_url=None, database=None, user=None, password=None, port=5432,
                  search_path=None, timezone=None):
-        self.logging = (os.getenv('DEBUG') == 'TRUE')
+        self._logging = (os.getenv('DEBUG') == 'TRUE' or os.getenv('LOGLVL') == 'DEBUG' or os.getenv('PG_LOG') == 'TRUE')
+
         if host_or_url is None:
             host_or_url = os.getenv('DATABASE_URL', '127.0.0.1')
         if host_or_url.startswith('postgres://'):
             try:
-                args = psql_url.search(host_or_url).groupdict()
+                args = _RE_PSQL_URL.match(host_or_url).groupdict()
             except:
-                raise ValueError("PostgreSQL url is not a valid format postgres://user:password@host:post/database from %s" % host_or_url)
+                raise ValueError('PostgreSQL url is not a valid format postgres://user:password@host:post/database from %s' % host_or_url)
             else:
                 self.host = args.get('host')
                 self.database = args.get('database')
+                self._search_path = search_path or args.pop('search_path', None)
+                self._timezone = timezone or args.pop('timezone', None)
         else:
+            self._search_path = search_path
+            self._timezone = timezone
             self.host = host_or_url
             self.database = database
             args = dict(host=host_or_url, database=database, port=int(port),
                         user=user, password=password)
 
-        self.timezone = timezone
         self._db = None
         self._db_args = args
         self._register_types = []
-        self._search_path = search_path
         self._change_path = None
         try:
             self.reconnect()
         except Exception:  # pragma: no cover
-            logging.error("Cannot connect to PostgreSQL on postgresql://%s:<password>@%s/%s",
+            logging.error('Cannot connect to PostgreSQL on postgresql://%s:<password>@%s/%s',
                           args['user'], self.host, self.database, exc_info=True)
 
         try:
@@ -86,21 +86,32 @@ class Connection(object):
 
     def close(self):
         """Closes this database connection."""
-        if getattr(self, "_db", None) is not None:
+        if getattr(self, '_db', None) is not None:
             self._db.close()
             self._db = None
 
-    def reconnect(self):
+    def _reconnect(self):
         """Closes the existing database connection and re-opens it."""
         self.close()
         self._db = psycopg2.connect(**self._db_args)
-        self._db.autocommit = True
 
-        # register custom types
+        if self._search_path:
+            self.execute('set search_path=%s;' % self._search_path)
+
+        if self._timezone:
+            self.execute("set timezone='%s';" % self._timezone)
+
+    def _reregister_types(self):
+        """Registers existing types for a new connection"""
         for _type in self._register_types:
             psycopg2.extensions.register_type(psycopg2.extensions.new_type(*_type))
 
+    def path(self, search_path):
+        self._change_path = search_path
+        return self
+
     def adapt(self, value):
+        """Adapt any value into SQL safe string"""
         return adapt(value)
 
     def register_type(self, oids, name, casting):
@@ -108,7 +119,7 @@ class Connection(object):
         """
         assert type(oids) is tuple
         assert type(name) in (unicode, str)
-        assert hasattr(casting, "__call__")
+        assert hasattr(casting, '__call__')
         self._register_types.append((oids, name, casting))
         psycopg2.extensions.register_type(psycopg2.extensions.new_type(oids, name, casting))
 
@@ -131,17 +142,22 @@ class Connection(object):
         """Returns a row list for the given query and parameters."""
         cursor = self._cursor()
         try:
-            self._execute(cursor, query, parameters or None, kwargs.pop('path'))
+            self._execute(cursor, query, parameters or None, kwargs)
             if cursor.description:
                 column_names = [column.name for column in cursor.description]
-                return [Row(itertools.izip(column_names, row)) for row in cursor.fetchall()]
+                return [Row(zip(column_names, row)) for row in cursor.fetchall()]
         except:
             cursor.close()
             raise
 
-    def execute(self, query, *parameters):
-        """Alias for query"""
-        return self.query(query, *parameters)
+    def execute(self, query, *parameters, **kwargs):
+        """Same as query, but do not process results. Always returns `None`."""
+        cursor = self._cursor()
+        try:
+            self._execute(cursor, query, parameters, kwargs)
+        except:
+            cursor.close()
+            raise
 
     def get(self, query, *parameters, **kwargs):
         """Returns the first row returned for the given query."""
@@ -149,19 +165,19 @@ class Connection(object):
         if not rows:
             return None
         elif len(rows) > 1:
-            raise ValueError("Multiple rows returned for get() query")
+            raise ValueError('Multiple rows returned for get() query')
         else:
             return rows[0]
 
-    def executemany(self, query, *parameters, **kwargs):
+    def executemany(self, query, *parameters):
         """Executes the given query against all the given param sequences.
         """
         cursor = self._cursor()
         try:
-            self._executemany(cursor, query, parameters, kwargs.get('path', None))
+            self._executemany(cursor, query, parameters)
             if cursor.description:
                 column_names = [column.name for column in cursor.description]
-                return [Row(itertools.izip(column_names, row)) for row in cursor.fetchall()]
+                return [Row(zip(column_names, row)) for row in cursor.fetchall()]
         except Exception:  # pragma: no cover
             cursor.close()
             raise
@@ -174,21 +190,13 @@ class Connection(object):
         self._ensure_connected()
         return self._db.cursor()
 
-    def _set_search_path(self, query, path):
-        default_path = (('set search_path=' + self._default_path + ';') if self._default_path else '')
-        return 'set search_path=' + path + ';' + query + default_path
-
-    def _execute(self, cursor, query, parameters, kwargs, path):
+    def _execute(self, cursor, query, parameters, kwargs):
         try:
-            if path:
-                query = self._set_search_path(query, path)
             if kwargs:
                 query = query % dict(map(lambda r: (r[0], adapt(r[1])), kwargs.items()))
-                self._log(query)
-                cursor.execute(query)
-            else:
-                self._log(query, parameters)
-                cursor.execute(query, parameters)
+
+            self._log(query, parameters)
+            cursor.execute(query, parameters)
 
         except OperationalError as e:  # pragma: no cover
             logging.error("Error connecting to PostgreSQL on %s, %s", self.host, e)
@@ -196,20 +204,19 @@ class Connection(object):
             raise
 
     def _log(self, query, params=None):
-        if self.logging:
+        if self._logging:
             if params:
                 query = self.mogrify(query, *params)
-            logging.info(highlight(code=re.sub(r"\n\s*", " ", query)))
+            logging.info(_RE_WS.sub(' ', query))
 
     def _executemany(self, cursor, query, parameters):
         """The function is mostly useful for commands that update the database:
            any result set returned by the query is discarded."""
         try:
-            query = self._set_search_path(query)
             self._log(query)
             cursor.executemany(query, parameters)
         except OperationalError as e:  # pragma: no cover
-            logging.error("Error connecting to PostgreSQL on %s, e", self.host, e)
+            logging.error('Error connecting to PostgreSQL on %s, e', self.host, e)
             self.close()
             raise
 
@@ -222,11 +229,6 @@ class Connection(object):
             sql = re.sub(r'\\ir\s(.*)', lambda m: self.file(os.path.join(base, m.groups()[0]), False), r.read())
         if _execute:
             cursor = self._cursor()
-            if self._change_path:
-                sql = ("set search_path = %s;" % self._change_path) + sql
-                self._change_path = None
-            elif self._search_path:
-                sql = ("set search_path = %s;" % self._search_path) + sql
             map(cursor.execute, sql.split("\n-- EOF\n"))
         else:
             return sql
@@ -237,6 +239,40 @@ class Connection(object):
         http://initd.org/psycopg/docs/connection.html#connection.notices
         """
         return [self._db.notices.pop()[8:].strip() for x in range(len(self._db.notices))]
+
+
+class Connection(_Connection):
+    def reconnect(self):
+        self._reconnect()
+        self._db.autocommit = True
+        self._reregister_types()
+
+
+class TransactionalConnection(_Connection):
+    def __init__(self, host_or_url=None, database=None, user=None, password=None, port=5432,
+                 search_path=None, timezone=None,
+                 isolation_level=None, readonly=None,
+                 deferrable=None):
+
+        self.isolation_level = isolation_level
+        self.readonly = readonly
+        self.deferrable = deferrable
+
+        super(TransactionalConnection, self).__init__(
+            host_or_url=host_or_url, database=database, user=user, password=password, port=port,
+            search_path=search_path, timezone=timezone
+        )
+
+    def reconnect(self):
+        self._reconnect()
+        self._db.set_session(isolation_level=self.isolation_level, readonly=self.readonly, deferrable=self.deferrable)
+        self._reregister_types()
+
+    def commit(self):
+        self._db.commit()
+
+    def rollback(self):
+        self._db.rollback()
 
 
 class Row(dict):
