@@ -203,9 +203,6 @@ class _Connection(object):
                 self._log(query, parameters)
                 cursor.execute(query, parameters)
 
-            self._log(query, parameters)
-            cursor.execute(query, parameters)
-
         except OperationalError as e:  # pragma: no cover
             logging.error("Error connecting to PostgreSQL on %s, %s", self.host, e)
             self.close()
