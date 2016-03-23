@@ -18,10 +18,10 @@ class PubSub(object):
     def unsubscribe(self, channels=None):
         if channels:
             assert type(channels) in (tuple, list), "Invalid channels. Must be tuple or list of strings"
-            self._cur.execute("".join(map(lambda c: "UNLISTEN %s;" % c, list(channels))))
+            self._cur.execute("".join(['UNLISTEN %s;' % c for c in list(channels)]))
             [self._channels.remove(channel) for channel in channels]
         else:
-            self._cur.execute("".join(map(lambda c: "UNLISTEN %s;" % c, list(self._channels))))
+            self._cur.execute("".join(['UNLISTEN %s;' % c for c in list(self._channels)]))
             self._channels = []
 
     def __iter__(self):

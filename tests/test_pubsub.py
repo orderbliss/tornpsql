@@ -47,13 +47,17 @@ class tornpsqlTests(unittest.TestCase):
 
         self.db.execute("select pg_notify('other', 'Hello other world...?');")
         time.sleep(.1)
-        self.assertEqual(self.db.query("SELECT * from notices"), [{"id": 1, "channel": "example", "payload": "Hello world!"},
-                                                                  {"id": 2, "channel": "other", "payload": "Hello other world...?"}])
+        results = self.db.query("SELECT * from notices")
+        self.assertEqual(len(results), 2)
+        self.assertEqual(results[0], {"id": 1, "channel": "example", "payload": "Hello world!"})
+        self.assertEqual(results[1], {"id": 2, "channel": "other", "payload": "Hello other world...?"})
 
         self.db.execute("select pg_notify('notlistening', 'Hello other world...?');")
         time.sleep(.1)
-        self.assertEqual(self.db.query("SELECT * from notices"), [{"id": 1, "channel": "example", "payload": "Hello world!"},
-                                                                  {"id": 2, "channel": "other", "payload": "Hello other world...?"}])
+        results = self.db.query("SELECT * from notices")
+        self.assertEqual(len(results), 2)
+        self.assertEqual(results[0], {"id": 1, "channel": "example", "payload": "Hello world!"})
+        self.assertEqual(results[1], {"id": 2, "channel": "other", "payload": "Hello other world...?"})
 
     def test_unsubscribe(self):
         "can unsubscribe to channels"

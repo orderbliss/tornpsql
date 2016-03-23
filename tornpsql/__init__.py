@@ -20,18 +20,21 @@ from psycopg2 import InternalError
 from psycopg2 import ProgrammingError
 from psycopg2 import NotSupportedError
 
-try:
-    unicode
-except:
-    unicode = str
-
 
 __version__ = VERSION = version = '2.0.0'
 
-from .pubsub import PubSub
 
 _RE_WS = re.compile(r'\n\s*')
 _RE_PSQL_URL = re.compile(r'^postgres://(?P<user>[^:]*):?(?P<password>[^@]*)@(?P<host>[^:]+):?(?P<port>\d+)/?(?P<database>[^#]+)(?P<search_path>#.+)?(?P<timezone>@.+)?$')
+
+
+from .pubsub import PubSub
+
+
+try:
+    basestring
+except NameError:
+    basestring = str
 
 
 class _Connection(object):
@@ -118,7 +121,7 @@ class _Connection(object):
         """Callback to register data types when reconnect
         """
         assert type(oids) is tuple
-        assert type(name) in (unicode, str)
+        assert isinstance(name, basestring)
         assert hasattr(casting, '__call__')
         self._register_types.append((oids, name, casting))
         psycopg2.extensions.register_type(psycopg2.extensions.new_type(oids, name, casting))
@@ -132,7 +135,7 @@ class _Connection(object):
         cursor = self._cursor()
         try:
             if kwargs:
-                return cursor.mogrify(query % dict(map(lambda r: (r[0], adapt(r[1])), kwargs.items())))
+                return cursor.mogrify(query % dict([(r[0], adapt(r[1])) for r in list(kwargs.items())]))
             return cursor.mogrify(query, parameters)
         except:  # pragma: no cover
             cursor.close()
@@ -193,7 +196,12 @@ class _Connection(object):
     def _execute(self, cursor, query, parameters, kwargs):
         try:
             if kwargs:
-                query = query % dict(map(lambda r: (r[0], adapt(r[1])), kwargs.items()))
+                query = query % dict([(r[0], adapt(r[1])) for r in list(kwargs.items())])
+                self._log(query)
+                cursor.execute(query)
+            else:
+                self._log(query, parameters)
+                cursor.execute(query, parameters)
 
             self._log(query, parameters)
             cursor.execute(query, parameters)

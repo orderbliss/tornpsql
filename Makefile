@@ -8,11 +8,7 @@ upload: tag
 	python setup.py sdist upload
 
 test:
-	@dropdb --if-exists tornpsql
-	@createdb tornpsql
-	@psql tornpsql -c 'create extension hstore;'
-	@psql -f tests/test.sql tornpsql
-	. venv/bin/activate; nosetests -v --with-coverage
+	tox
 
 venv:
 	virtualenv venv
