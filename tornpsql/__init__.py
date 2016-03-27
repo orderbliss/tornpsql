@@ -39,8 +39,11 @@ except NameError:
 
 class _Connection(object):
     def __init__(self, host_or_url=None, database=None, user=None, password=None, port=5432,
-                 search_path=None, timezone=None):
-        self._logging = (os.getenv('DEBUG') == 'TRUE' or os.getenv('LOGLVL') == 'DEBUG' or os.getenv('PG_LOG') == 'TRUE')
+                 search_path=None, timezone=None, logging=None):
+        if logging is not None:
+            self._logging = logging
+        else:
+            self._logging = (os.getenv('DEBUG') == 'TRUE' or os.getenv('LOGLVL') == 'DEBUG' or os.getenv('PG_LOG') == 'TRUE')
 
         if host_or_url is None:
             host_or_url = os.getenv('DATABASE_URL', '127.0.0.1')
