@@ -28,7 +28,7 @@ _RE_WS = re.compile(r'\n\s*')
 _RE_PSQL_URL = re.compile(r'^postgres://(?P<user>[^:]*):?(?P<password>[^@]*)@(?P<host>[^:]+):?(?P<port>\d+)/?(?P<database>[^#]+)(?P<search_path>#.+)?(?P<timezone>@.+)?$')
 
 
-from tornpsql.pubsub import PubSub
+from pubsub import PubSub
 
 
 try:
