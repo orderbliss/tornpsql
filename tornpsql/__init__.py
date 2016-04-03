@@ -22,7 +22,7 @@ from psycopg2 import ProgrammingError
 from psycopg2 import NotSupportedError
 
 
-__version__ = VERSION = version = '2.0.0a1'
+__version__ = VERSION = version = '2.0.0a2'
 
 
 _RE_WS = re.compile(r'\n\s*')
