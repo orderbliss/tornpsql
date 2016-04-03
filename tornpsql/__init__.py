@@ -62,7 +62,6 @@ class PubSub(object):
     def listen(self):
         assert self._channels, 'No channels to listen to.'
         for channel in self._channels:
-            print 'listen channel', channel
             self._cur.execute('LISTEN %s;' % channel)
         return self
 
