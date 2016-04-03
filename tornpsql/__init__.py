@@ -74,9 +74,9 @@ except NameError:
 
 class _Connection(object):
     def __init__(self, host_or_url=None, database=None, user=None, password=None, port=5432,
-                 search_path=None, timezone=None, enabled_logging=None):
-        if enabled_logging is not None:
-            self._logging = enabled_logging
+                 search_path=None, timezone=None, enable_logging=None):
+        if enable_logging is not None:
+            self._logging = enable_logging
         else:
             self._logging = (os.getenv('DEBUG') == 'TRUE' or os.getenv('LOGLVL') == 'DEBUG' or os.getenv('PG_LOG') == 'TRUE')
 
