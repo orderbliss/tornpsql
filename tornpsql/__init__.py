@@ -191,6 +191,24 @@ class _Connection(object):
             cursor.close()
             raise
 
+    def iter(self, query, *parameters, **kwargs):
+        """Returns a generator for records from the query."""
+        cursor = self._cursor()
+        try:
+            self._execute(cursor, query, parameters or None, kwargs)
+            if cursor.description:
+                column_names = [column.name for column in cursor.description]
+                while True:
+                    record = cursor.fetchone()
+                    if not record:
+                        break
+                    yield Row(zip(column_names, record))
+            raise StopIteration
+
+        except:
+            cursor.close()
+            raise
+
     def execute(self, query, *parameters, **kwargs):
         """Same as query, but do not process results. Always returns `None`."""
         cursor = self._cursor()
