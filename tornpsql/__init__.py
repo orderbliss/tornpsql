@@ -247,7 +247,12 @@ class _Connection(object):
 
     def _cursor(self):
         self._ensure_connected()
-        return self._db.cursor()
+        try:
+            return self._db.cursor()
+
+        except:
+            self.reconnect()
+            return self._db.cursor()
 
     def _execute(self, cursor, query, parameters, kwargs):
         try:
