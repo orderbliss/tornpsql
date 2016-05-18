@@ -173,8 +173,13 @@ class _Connection(object):
         cursor = self._cursor()
         try:
             if kwargs:
-                return cursor.mogrify(query % dict([(r[0], adapt(r[1])) for r in list(kwargs.items())]))
-            return cursor.mogrify(query, parameters)
+                res = cursor.mogrify(query % dict([(r[0], adapt(r[1])) for r in list(kwargs.items())]))
+            else:
+                res = cursor.mogrify(query, parameters)
+
+            cursor.close()
+            return res
+
         except:  # pragma: no cover
             cursor.close()
             raise
@@ -186,7 +191,9 @@ class _Connection(object):
             self._execute(cursor, query, parameters or None, kwargs)
             if cursor.description:
                 column_names = [column.name for column in cursor.description]
-                return [Row(zip(column_names, row)) for row in cursor.fetchall()]
+                res = [Row(zip(column_names, row)) for row in cursor.fetchall()]
+                cursor.close()
+                return res
         except:
             cursor.close()
             raise
@@ -214,9 +221,12 @@ class _Connection(object):
         cursor = self._cursor()
         try:
             self._execute(cursor, query, parameters, kwargs)
+
         except:
-            cursor.close()
             raise
+
+        finally:
+            cursor.close()
 
     def get(self, query, *parameters, **kwargs):
         """Returns the first row returned for the given query."""
@@ -236,7 +246,10 @@ class _Connection(object):
             self._executemany(cursor, query, parameters)
             if cursor.description:
                 column_names = [column.name for column in cursor.description]
-                return [Row(zip(column_names, row)) for row in cursor.fetchall()]
+                res = [Row(zip(column_names, row)) for row in cursor.fetchall()]
+                cursor.close()
+                return res
+
         except Exception:  # pragma: no cover
             cursor.close()
             raise
@@ -296,6 +309,7 @@ class _Connection(object):
         if _execute:
             cursor = self._cursor()
             map(cursor.execute, sql.split("\n-- EOF\n"))
+            cursor.close()
         else:
             return sql
 
