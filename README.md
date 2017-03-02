@@ -1,17 +1,14 @@
-tornpsql 
+tornpsql
 ========
 
-[![Build Status](https://secure.travis-ci.org/stevepeak/tornpsql.png)](http://travis-ci.org/stevepeak/tornpsql) [![Version](https://pypip.in/v/tornpsql/badge.png)](https://github.com/stevepeak/tornpsql) [![codecov.io](https://codecov.io/github/stevepeak/tornpsql/coverage.svg?branch=master)](https://codecov.io/github/stevepeak/tornpsql?branch=master)
+[![Build Status](https://secure.travis-ci.org/stevepeak/tornpsql.png)](http://travis-ci.org/stevepeak/tornpsql)  [![codecov.io](https://codecov.io/gh/stevepeak/tornpsql/branch/master/graph/badge.svg)](https://codecov.io/gh/stevepeak/tornpsql)
 
 `pip install tornpsql`
 
-> **PostgreSQL wrapper** forked/ported from [bdarnell/torndb](https://github.com/bdarnell/torndb)
-
 ## Featuring
 - Query via `args` or `kwargs`
-- [set search_path](#set-search_path)
+- Support [Search Path](#set-search_path)
 - [Query from Files](#query-files)
-  - including references
 - [Pubsub](#pubsub)
 - Retrieve notices (`raise notice 'something';`) via `list(db.notices)`
 
@@ -20,11 +17,21 @@ tornpsql
 # Method 1
 import tornpsql
 db = tornpsql.Connection("postgres://postgres-user:postgres-password@127.0.0.1:5432/postgres-db")
-results = db.query("select column from mytable")
-# Method 2
+```
+
+```python
 import tornpsql
 db = tornpsql.Connection("127.0.0.1", "database", "postgres", "postgres-user", 5432)
-results = db.query("select column from mytable")
+```
+
+```py
+# get one
+db.get("SELECT col from table where col = %s limit 1", value)
+# >>> {"col": "value"}
+
+# get many
+db.query("SELECT col from table where col = %s limit 2", value)
+# >>> [{"col": "value"}, {"col": "value"}]
 ```
 
 ## Set search_path

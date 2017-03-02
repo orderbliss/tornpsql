@@ -22,7 +22,7 @@ from psycopg2 import ProgrammingError
 from psycopg2 import NotSupportedError
 
 
-__version__ = VERSION = version = '2.0.0a5'
+__version__ = VERSION = version = '2.0.1'
 
 
 _RE_WS = re.compile(r'\n\s*')
@@ -106,9 +106,9 @@ class _Connection(object):
         self._change_path = None
         try:
             self.reconnect()
-        except Exception:  # pragma: no cover
-            logging.error('Cannot connect to PostgreSQL on postgresql://%s:<password>@%s/%s',
-                          args['user'], self.host, self.database, exc_info=True)
+        except Exception as err:  # pragma: no cover
+            logging.error('%s: Cannot connect to PostgreSQL on postgresql://%s:<password>@%s:%s/%s',
+                          str(type(err)), args['user'], self.host, args['port'], self.database)
 
         try:
             psycopg2.extras.register_hstore(self._db, globally=True)
