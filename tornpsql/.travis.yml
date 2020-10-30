@@ -1,0 +1,30 @@
+language: python
+
+sudo: false
+
+python:
+  - 2.7
+  - 3.3
+  - 3.4
+
+env:
+  global:
+    - DATABASE_URL=postgres://postgres:@127.0.0.1:5432/tornpsql
+    - DATABASE_USER=postgres
+
+services: postgres
+
+addons:
+  postgresql: "9.3"
+
+before_script:
+  - python setup.py install
+  - pip install -r tests/requirements.txt
+  - psql -U postgres -c 'create database tornpsql;'
+  - psql tornpsql -f tests/test.sql
+
+script:
+  - nosetests --rednose --with-cov --cov-config=.coveragerc
+
+after_success:
+  - codecov
